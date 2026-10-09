@@ -1,0 +1,42 @@
+/* 표지의 금빛 포인트를 버튼·선택 탭·현재 계절 행에 적용합니다. */
+.btn-upload-action {
+  border: 1px solid rgba(167, 127, 70, 0.55);
+}
+
+.btn-upload-action.state-ready {
+  border-color: var(--color-primary-dark);
+}
+
+.btn-upload-action.state-locked {
+  border-color: rgba(167, 127, 70, 0.46);
+}
+
+.btn-upload-action.state-unknown {
+  border-color: var(--color-primary);
+}
+
+.spot-tab-chip.active {
+  background-color: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.spot-tab-chip.active .spot-distance-badge {
+  background-color: rgba(167, 127, 70, 0.16);
+  color: var(--color-primary-dark);
+}
+
+.grid-row-header.is-current-season {
+  color: var(--color-primary-dark);
+  background-color: #F1E4CC;
+  box-shadow: inset 0 0 0 1px rgba(167, 127, 70, 0.4);
+}
+
+.matrix-slot.is-current-season {
+  border-color: rgba(167, 127, 70, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(167, 127, 70, 0.22);
+}
+
+.matrix-slot.is-current-season:not(.is-filled) {
+  background-color: #F1E4CC;
+}
