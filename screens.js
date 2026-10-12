@@ -167,9 +167,14 @@
       metaTags.textContent = ''; memo.textContent = ''; memo.hidden = true; credit.textContent = ''; count.textContent = '0 / 0'; previous.disabled = true; next.disabled = true;
     } else {
       const currentIndex = Math.min(Math.max(state.photoIndex || 0, 0), photos.length - 1); state.photoIndex = currentIndex;
-      if (photos.length > 1) {
-        const backTwo = document.createElement('span'); backTwo.className = 'season-photo-back season-photo-back-two'; backTwo.setAttribute('aria-hidden', 'true');
-        const backOne = document.createElement('span'); backOne.className = 'season-photo-back season-photo-back-one'; backOne.setAttribute('aria-hidden', 'true'); stack.append(backTwo, backOne);
+      const backCount = Math.min(2, photos.length - 1);
+      for (let offset = backCount; offset >= 1; offset -= 1) {
+        const backIndex = (currentIndex + offset) % photos.length;
+        const back = document.createElement('span');
+        back.className = `season-photo-back season-photo-back-${offset === 1 ? 'one' : 'two'}`;
+        back.setAttribute('aria-hidden', 'true');
+        const backImage = document.createElement('img'); backImage.className = 'season-photo-back-image'; backImage.src = photos[backIndex].dataUrl; backImage.alt = ''; backImage.loading = 'lazy';
+        back.appendChild(backImage); stack.appendChild(back);
       }
       const photoCard = document.createElement('div'); photoCard.className = 'season-photo-card';
       const image = document.createElement('img'); image.src = photos[currentIndex].dataUrl; image.alt = `${spot.name} ${seasonNames[route.season]} 사진 ${currentIndex + 1}`; image.loading = 'lazy'; photoCard.appendChild(image); stack.appendChild(photoCard);

@@ -313,3 +313,8 @@ button { color: inherit; }
 .home-local-button-title { font-size: 13px; font-weight: 600; }
 .home-local-button-cities { font-size: 10px; line-height: 1.35; }
 .free-records-filter-row .spot-sort-button { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+
+/* 계절 사진 더미의 실제 사진 */
+.season-pile-back-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+.season-photo-back { overflow: hidden; }
+.season-photo-back-image { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }

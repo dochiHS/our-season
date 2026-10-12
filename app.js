@@ -124,14 +124,22 @@
       if (current) { pile.setAttribute('aria-current', view.isPreview ? 'true' : 'date'); pile.title = view.isPreview ? `현재 강조 계절: ${SEASONS_KO[season]} (미리보기)` : '오늘 날짜 기준 현재 계절'; }
       const stack = document.createElement('span'); stack.className = 'season-pile-stack';
       if (photos.length) {
-        const backOne = document.createElement('span'); backOne.className = 'season-pile-back season-pile-back-one'; backOne.setAttribute('aria-hidden', 'true');
-        const backTwo = document.createElement('span'); backTwo.className = 'season-pile-back season-pile-back-two'; backTwo.setAttribute('aria-hidden', 'true');
+        if (photos.length >= 2) {
+          const backOne = document.createElement('span'); backOne.className = 'season-pile-back season-pile-back-one'; backOne.setAttribute('aria-hidden', 'true');
+          const backOneImage = document.createElement('img'); backOneImage.className = 'season-pile-back-photo'; backOneImage.src = photos[1].dataUrl; backOneImage.alt = ''; backOneImage.loading = 'lazy'; backOne.appendChild(backOneImage);
+          stack.appendChild(backOne);
+          if (photos.length >= 3) {
+            const backTwo = document.createElement('span'); backTwo.className = 'season-pile-back season-pile-back-two'; backTwo.setAttribute('aria-hidden', 'true');
+            const backTwoImage = document.createElement('img'); backTwoImage.className = 'season-pile-back-photo'; backTwoImage.src = photos[2].dataUrl; backTwoImage.alt = ''; backTwoImage.loading = 'lazy'; backTwo.appendChild(backTwoImage);
+            stack.appendChild(backTwo);
+          }
+        }
         const cover = document.createElement('span'); cover.className = 'season-pile-cover';
         const img = document.createElement('img'); img.src = photos[0].dataUrl; img.alt = `${spot.name} ${SEASONS_KO[season]} 최근 승인 사진`; img.loading = 'lazy'; cover.appendChild(img);
         const tags = document.createElement('span'); tags.className = 'season-pile-tags';
         const timeTag = document.createElement('span'); timeTag.textContent = TIME_OF_DAY_KO[photos[0].timeOfDay] || '시간 미상';
         const weatherTag = document.createElement('span'); weatherTag.textContent = WEATHER_KO[photos[0].weather] || '날씨 미상';
-        tags.append(timeTag, weatherTag); cover.appendChild(tags); stack.append(backOne, backTwo, cover);
+        tags.append(timeTag, weatherTag); cover.appendChild(tags); stack.appendChild(cover);
       } else {
         const empty = document.createElement('span'); empty.className = 'season-pile-empty'; empty.textContent = '아직 사진이 없어요'; stack.appendChild(empty);
       }
