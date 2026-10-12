@@ -10,6 +10,7 @@
   const state = {
     spots: [],
     currentSpotId: null,
+    currentPointId: null,
     userCoords: null,
     approvedPhotos: []
   };
@@ -33,6 +34,8 @@
   const elements = {
     spotTabs: document.getElementById('spot-tabs'),
     spotSummaryCard: document.getElementById('spot-summary-card'),
+    pointTabsSection: document.getElementById('point-tabs-section'),
+    pointTabs: document.getElementById('point-tabs'),
     photoMatrix: document.getElementById('photo-matrix'),
     detailModal: document.getElementById('photo-detail-modal'),
     detailPhotoImg: document.getElementById('detail-photo-img'),
@@ -78,6 +81,11 @@
     return state.spots.find(spot => spot.id === state.currentSpotId) || null;
   }
 
+  function getCurrentPoint(spot = getCurrentSpot()) {
+    if (!spot || !Array.isArray(spot.points) || !spot.points.length) return null;
+    return spot.points.find(point => point.id === state.currentPointId) || spot.points[0];
+  }
+
   function getSupabaseClient() {
     if (supabaseClient) return supabaseClient;
     const config = global.SUPABASE_CONFIG;
@@ -103,13 +111,42 @@
   }
 
   function getValidationTarget(spot) {
-    const point = getRepresentativePoint(spot);
-    if (!spot || !point) return null;
+    if (!spot || !Array.isArray(spot.points) || !spot.points.length) return null;
     return {
+      id: spot.id,
       name: spot.name,
-      latitude: point.lat,
-      longitude: point.lng,
-      radiusMeters: point.radiusMeters || 500
+      points: spot.points.map(point => ({
+        id: point.id,
+        name: point.name,
+        latitude: point.lat,
+        longitude: point.lng,
+        radiusMeters: point.radiusMeters,
+        description: point.description
+      }))
+    };
+  }
+
+  function getNearestPointStatus(spot) {
+    if (!spot || !Array.isArray(spot.points) || !spot.points.length) return null;
+    const nearestPoint = spot.nearestPoint || getRepresentativePoint(spot);
+    if (!nearestPoint) return null;
+    const accuracy = state.userCoords && Number.isFinite(state.userCoords.accuracy)
+      ? Math.min(Math.max(state.userCoords.accuracy, 0), 100)
+      : 0;
+    const withinAnyPoint = spot.points.some(point => {
+      const distance = global.GeoCalculator.getDistanceInMeters(
+        state.userCoords.latitude,
+        state.userCoords.longitude,
+        point.lat,
+        point.lng
+      );
+      return distance <= (point.radiusMeters || 500) + accuracy;
+    });
+    return {
+      point: nearestPoint,
+      distanceMeters: spot.distanceMeters,
+      radius: nearestPoint.radiusMeters || 500,
+      withinAnyPoint
     };
   }
 
@@ -179,6 +216,7 @@
       refreshSpots();
       renderTabs();
       renderSummaryCard();
+      renderPointTabs();
       renderMatrix();
     } catch (error) {
       setAppNotice(`승인된 사진을 불러오지 못했습니다. ${error.message || ''}`.trim(), 'error');
@@ -208,6 +246,31 @@
 
       chip.addEventListener('click', () => selectSpot(spot.id));
       elements.spotTabs.appendChild(chip);
+    });
+  }
+
+  function renderPointTabs() {
+    if (!elements.pointTabs || !elements.pointTabsSection) return;
+
+    const currentSpot = getCurrentSpot();
+    const points = currentSpot && Array.isArray(currentSpot.points) ? currentSpot.points : [];
+    elements.pointTabs.innerHTML = '';
+    elements.pointTabsSection.hidden = points.length <= 1;
+    if (points.length <= 1) return;
+
+    const currentPoint = getCurrentPoint(currentSpot);
+    points.forEach(point => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = `spot-tab-chip ${point.id === currentPoint.id ? 'active' : ''}`;
+      chip.textContent = point.name;
+      chip.setAttribute('aria-pressed', point.id === currentPoint.id ? 'true' : 'false');
+      chip.addEventListener('click', () => {
+        state.currentPointId = point.id;
+        renderPointTabs();
+        renderMatrix();
+      });
+      elements.pointTabs.appendChild(chip);
     });
   }
 
@@ -264,8 +327,8 @@
     const currentSpot = getCurrentSpot();
     if (!currentSpot) return;
 
-    const repPoint = getRepresentativePoint(currentSpot);
-    const grid = repPoint ? repPoint.grid : null;
+    const selectedPoint = getCurrentPoint(currentSpot);
+    const grid = selectedPoint ? selectedPoint.grid : null;
     const { SEASONS, SEASONS_KO, LIGHT_CONDITIONS, LIGHT_CONDITIONS_KO } = global.SpotData;
     const seasonView = getSeasonView();
     const focusedSeason = seasonView.season;
@@ -391,14 +454,18 @@
 
   function selectSpot(spotId) {
     state.currentSpotId = spotId;
+    const selectedSpot = getCurrentSpot();
+    state.currentPointId = selectedSpot && selectedSpot.points.length ? selectedSpot.points[0].id : null;
     renderTabs();
     renderSummaryCard();
+    renderPointTabs();
     renderMatrix();
     updateUploadButton();
   }
 
   function refreshSpots() {
     const previousSpotId = state.currentSpotId;
+    const previousPointId = state.currentPointId;
     const userCoords = state.userCoords
       ? { lat: state.userCoords.latitude, lng: state.userCoords.longitude }
       : null;
@@ -410,6 +477,12 @@
     } else {
       state.currentSpotId = state.spots.length ? state.spots[0].id : null;
     }
+    const currentSpot = getCurrentSpot();
+    state.currentPointId = currentSpot && currentSpot.points.some(point => point.id === previousPointId)
+      ? previousPointId
+      : currentSpot && currentSpot.points.length
+        ? currentSpot.points[0].id
+        : null;
   }
 
   async function requestUserLocation(showError) {
@@ -421,6 +494,7 @@
       refreshSpots();
       renderTabs();
       renderSummaryCard();
+      renderPointTabs();
       renderMatrix();
       updateUploadButton();
       return true;
@@ -456,22 +530,23 @@
       return;
     }
 
-    const distance = typeof spot.distanceMeters === 'number' ? spot.distanceMeters : null;
-    const point = getRepresentativePoint(spot);
-    const radius = point && point.radiusMeters ? point.radiusMeters : 500;
-    if (distance !== null && distance <= radius) {
+    const pointStatus = getNearestPointStatus(spot);
+    const distance = pointStatus ? pointStatus.distanceMeters : null;
+    const pointName = pointStatus && pointStatus.point ? pointStatus.point.name : '가장 가까운 촬영 지점';
+    const radius = pointStatus ? pointStatus.radius : 500;
+    if (pointStatus && pointStatus.withinAnyPoint) {
       elements.btnOpenUpload.classList.add('state-ready');
       elements.btnUploadLabel.textContent = '현장 사진 등록하기';
-      setUploadDistanceNotice('현장 반경 안에 있습니다. 이 명소의 사진을 등록할 수 있어요.');
+      setUploadDistanceNotice(`가장 가까운 지점(${pointName})까지 ${global.UploadValidator.formatDistance(distance)}입니다. 촬영 지점 반경 안에 있습니다.`);
     } else {
       const distanceText = distance === null
         ? '거리 확인 불가'
         : global.UploadValidator.formatDistance(distance);
       elements.btnOpenUpload.classList.add('state-locked');
-      elements.btnUploadLabel.textContent = `🔒 ${spot.name}까지 ${distanceText}, 도착하면 올릴 수 있어요`;
+      elements.btnUploadLabel.textContent = `🔒 ${spot.name}의 ${pointName}까지 ${distanceText}, 도착하면 올릴 수 있어요`;
       setUploadDistanceNotice(distance === null
-        ? `현재 위치와 ${spot.name} 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.`
-        : `현재 ${spot.name}에서 ${distanceText} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`);
+        ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.`
+        : `현재 가장 가까운 지점(${pointName})에서 ${distanceText} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`);
     }
   }
 
@@ -513,11 +588,9 @@
 
     const spot = getCurrentSpot();
     if (!spot) return;
-    const distance = typeof spot.distanceMeters === 'number' ? spot.distanceMeters : null;
-    const point = getRepresentativePoint(spot);
-    const radius = point && point.radiusMeters ? point.radiusMeters : 500;
+    const pointStatus = getNearestPointStatus(spot);
 
-    if (distance === null || distance > radius) {
+    if (!pointStatus || !pointStatus.withinAnyPoint) {
       updateUploadButton();
       return;
     }
@@ -629,7 +702,7 @@
         .from('season_photos')
         .insert({
           spot_id: spot.id,
-          point_id: targetPointId(spot),
+          point_id: validation.pointId,
           season,
           time_of_day: mapping.time_of_day,
           weather: mapping.weather,
@@ -652,11 +725,6 @@
     }
   }
 
-  function targetPointId(spot) {
-    const point = getRepresentativePoint(spot);
-    return point ? point.id : null;
-  }
-
   function initApp() {
     if (!global.SpotData || !global.UploadValidator || !global.ImageCompressor) {
       console.error('필수 스크립트를 찾을 수 없습니다. 의존 스크립트를 app.js보다 먼저 불러오세요.');
@@ -667,6 +735,7 @@
     refreshSpots();
     renderTabs();
     renderSummaryCard();
+    renderPointTabs();
     renderMatrix();
     updateUploadButton();
     loadApprovedPhotos();

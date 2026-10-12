@@ -365,6 +365,19 @@ html, body {
   color: var(--text-invert);
 }
 
+/* 촬영 지점 탭은 명소 정보 카드와 사진 격자 사이에 배치 */
+.point-tabs-section {
+  padding: 0 16px 12px;
+}
+
+.point-tabs-section[hidden] {
+  display: none;
+}
+
+.point-tab-scroll {
+  padding-bottom: 4px;
+}
+
 /* ------------------------------------------------------------
    명소 요약 카드
    ------------------------------------------------------------ */

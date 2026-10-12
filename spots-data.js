@@ -3,7 +3,8 @@
  * 일반 스크립트 방식이며 공개 API는 globalThis.SpotData에서 사용할 수 있습니다.
  *
  * 계층 구조:
- * 명소(Spot) -> 촬영 지점(Point, 현재는 명소별 대표 위치 1개) -> 계절 4개 x 날씨/빛 4개 격자 슬롯
+ * 명소(Spot) -> 촬영 지점(Point, 명소마다 여러 지점을 둘 수 있음) -> 계절 4개 x 날씨/빛 4개 격자 슬롯
+ * 각 지점은 id, name, lat, lng, radiusMeters, description을 가집니다.
  *
  * 명소별 운영정보:
  * - operatingHours: 운영시간
@@ -58,7 +59,7 @@
     {
       id: 'jungbuk-dong',
       name: '정북동토성',
-      description: '광활한 하늘과 나홀로나무 실루엣이 어우러지는 인생샷 명소',
+      description: '넓은 평지 위 토성과 하늘이 어우러지는 명소',
       operatingHours: '상시 개방',
       parking: '주차 가능',
       safetyNotice: '현장 확인 예정',
@@ -69,6 +70,7 @@
           lat: 36.6889,
           lng: 127.4554,
           radiusMeters: 500,
+          description: '정북동토성 대표 촬영 지점',
           grid: createEmptyGrid()
         }
       ]
@@ -82,11 +84,30 @@
       safetyNotice: '현장 확인 예정',
       points: [
         {
+          id: 'sangdang-gongnam',
+          name: '공남문',
+          lat: 36.66154,
+          lng: 127.54051,
+          radiusMeters: 200,
+          description: '공남문 앞 길과 누각 위',
+          grid: createEmptyGrid()
+        },
+        {
+          id: 'sangdang-west-ridge',
+          name: '서쪽 성곽 능선',
+          lat: 36.660964,
+          lng: 127.536471,
+          radiusMeters: 200,
+          description: '청주 시내가 보이는 성곽길',
+          grid: createEmptyGrid()
+        },
+        {
           id: 'sangdang-main',
-          name: '대표 위치 (남문/성벽)',
+          name: '산성 안 다른 곳',
           lat: 36.6619,
           lng: 127.5384,
           radiusMeters: 500,
+          description: '그 밖의 산성 안 위치',
           grid: createEmptyGrid()
         }
       ]
@@ -105,6 +126,7 @@
           lat: 36.6464,
           lng: 127.4955,
           radiusMeters: 500,
+          description: '수암골 전망대 대표 촬영 지점',
           grid: createEmptyGrid()
         }
       ]
@@ -163,35 +185,60 @@
         ...point,
         grid: createEmptyGrid()
       }));
-      const sunTimes = getSunTimes(points[0].lat, points[0].lng);
+      const sunPoint = points[0];
+      const sunTimes = sunPoint ? getSunTimes(sunPoint.lat, sunPoint.lng) : { sunrise: '--:--', sunset: '--:--' };
       return { ...spot, sunTimes, points };
     });
   }
 
-  /** 사용자 좌표가 있으면 명소를 가까운 순으로 반환 */
+  /** 사용자 좌표가 있으면 명소를 가장 가까운 지점 순으로 반환 */
   function getSpotsSortedByDistance(userCoords = null) {
     const spots = getAllSpots();
 
     if (!userCoords || typeof userCoords.lat !== 'number' || typeof userCoords.lng !== 'number') {
-      return spots.map(spot => ({ ...spot, distanceMeters: null, distanceText: null }));
+      return spots.map(spot => ({
+        ...spot,
+        nearestPoint: null,
+        nearestPointId: null,
+        distanceMeters: null,
+        distanceText: null
+      }));
     }
 
     return spots
       .map(spot => {
-        const repPoint = spot.points[0];
-        const distanceMeters = calculateDistanceMeters(
-          userCoords.lat,
-          userCoords.lng,
-          repPoint.lat,
-          repPoint.lng
-        );
-        const distanceText = distanceMeters < 1000
-          ? `${Math.round(distanceMeters)}m`
-          : `${(distanceMeters / 1000).toFixed(1)}km`;
+        const pointDistances = spot.points
+          .map(point => ({
+            point,
+            distanceMeters: calculateDistanceMeters(
+              userCoords.lat,
+              userCoords.lng,
+              point.lat,
+              point.lng
+            )
+          }))
+          .sort((a, b) => a.distanceMeters - b.distanceMeters);
+        const nearest = pointDistances[0] || null;
+        const distanceMeters = nearest ? nearest.distanceMeters : null;
+        const distanceText = distanceMeters === null
+          ? null
+          : distanceMeters < 1000
+            ? `${Math.round(distanceMeters)}m`
+            : `${(distanceMeters / 1000).toFixed(1)}km`;
 
-        return { ...spot, distanceMeters, distanceText };
+        return {
+          ...spot,
+          nearestPoint: nearest ? nearest.point : null,
+          nearestPointId: nearest ? nearest.point.id : null,
+          distanceMeters,
+          distanceText
+        };
       })
-      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+      .sort((a, b) => {
+        if (a.distanceMeters === null) return 1;
+        if (b.distanceMeters === null) return -1;
+        return a.distanceMeters - b.distanceMeters;
+      });
   }
 
   /** 특정 ID의 명소 정보 반환 */
