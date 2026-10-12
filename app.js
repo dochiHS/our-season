@@ -169,12 +169,24 @@
   }
   function setUploadDistanceNotice(message) { if (!elements.uploadDistanceNotice) return; elements.uploadDistanceNotice.textContent = message || ''; elements.uploadDistanceNotice.hidden = !message; }
   function setAppNotice(message, status) { if (!elements.appStatusNotice) return; elements.appStatusNotice.textContent = message || ''; elements.appStatusNotice.className = 'app-status-notice'; if (status) elements.appStatusNotice.classList.add(`is-${status}`); elements.appStatusNotice.hidden = !message; }
+  function setupBottomBarHeightObserver() {
+    const bar = document.querySelector('.floating-bottom-bar');
+    if (!bar || !global.ResizeObserver) return;
+    const updateHeight = () => {
+      const height = bar.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--bottom-bar-height', `${height}px`);
+    };
+    const observer = new global.ResizeObserver(updateHeight);
+    observer.observe(bar);
+    if (elements.uploadDistanceNotice) observer.observe(elements.uploadDistanceNotice);
+    updateHeight();
+  }
   function updateUploadButton() {
     const spot = getCurrentSpot(); if (!elements.btnOpenUpload || !elements.btnUploadLabel) return; elements.btnOpenUpload.classList.remove('state-ready', 'state-locked', 'state-unknown');
     if (!spot || !state.userCoords) { elements.btnOpenUpload.classList.add('state-unknown'); elements.btnUploadLabel.textContent = '내 위치 확인 후 현장 등록하기'; setUploadDistanceNotice('내 위치를 확인하면 명소까지의 거리와 등록 가능 여부를 안내해 드립니다.'); return; }
     const status = getNearestPointStatus(spot), distance = status ? status.distanceMeters : null, pointName = status && status.point ? status.point.name : '가장 가까운 촬영 지점', radius = status ? status.radius : 500;
     if (status && status.withinAnyPoint) { elements.btnOpenUpload.classList.add('state-ready'); elements.btnUploadLabel.textContent = '현장 사진 등록하기'; setUploadDistanceNotice(`가장 가까운 지점(${pointName})까지 ${global.UploadValidator.formatDistance(distance)}입니다. 촬영 지점 반경 안에 있습니다.`); }
-    else { const text = distance === null ? '거리 확인 불가' : global.UploadValidator.formatDistance(distance); elements.btnOpenUpload.classList.add('state-locked'); elements.btnUploadLabel.textContent = `🔒 ${spot.name}의 ${pointName}까지 ${text}, 도착하면 올릴 수 있어요`; setUploadDistanceNotice(distance === null ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.` : `현재 가장 가까운 지점(${pointName})에서 ${text} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`); }
+    else { const text = distance === null ? '거리 확인 불가' : global.UploadValidator.formatDistance(distance); elements.btnOpenUpload.classList.add('state-locked'); elements.btnUploadLabel.textContent = `🔒 현장까지 ${text} · 도착하면 등록 가능`; setUploadDistanceNotice(distance === null ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.` : `현재 가장 가까운 지점(${pointName})에서 ${text} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`); }
   }
   function setFeedback(status, title, message, hint) { if (!elements.validationFeedbackCard) return; elements.validationFeedbackCard.className = 'validation-feedback-box'; if (status) elements.validationFeedbackCard.classList.add(status); elements.feedbackTitle.textContent = title || ''; elements.feedbackMessage.textContent = message || ''; elements.feedbackMessage.style.whiteSpace = 'pre-line'; elements.feedbackHint.textContent = hint || ''; }
   function getCaptureSeason(takenAt) { const date = takenAt ? new Date(takenAt) : new Date(); return global.SpotData.getCurrentSeason(Number.isNaN(date.getTime()) ? new Date() : date); }
@@ -241,7 +253,7 @@
   }
   function initApp() {
     if (!global.SpotData || !global.UploadValidator || !global.ImageCompressor) { console.error('필수 스크립트를 찾을 수 없습니다. 의존 스크립트를 app.js보다 먼저 불러오세요.'); return; }
-    setupFaceConfirmation(); updateCoverDate(); updateSeasonDisplay(null); refreshSpots(); renderTabs(); renderSummaryCard(); renderPointTabs(); renderMatrix(); updateUploadButton(); loadApprovedPhotos();
+    setupBottomBarHeightObserver(); setupFaceConfirmation(); updateCoverDate(); updateSeasonDisplay(null); refreshSpots(); renderTabs(); renderSummaryCard(); renderPointTabs(); renderMatrix(); updateUploadButton(); loadApprovedPhotos();
     elements.galleryTimeButtons.forEach(button => button.addEventListener('click', () => {
       galleryTimeFilter = button.dataset.galleryTime || 'all';
       elements.galleryTimeButtons.forEach(item => { const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', active ? 'true' : 'false'); });

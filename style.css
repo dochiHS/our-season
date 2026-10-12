@@ -278,3 +278,7 @@ button { color: inherit; }
 .upload-draft-resume-message { color: var(--color-primary-dark); font-size: 13px; font-weight: 700; }
 .upload-draft-resume button { min-height: 44px; margin-top: 6px; padding: 8px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: 12px; cursor: pointer; }
 .upload-draft-photo-missing { margin-top: 5px; color: var(--color-danger); font-size: 11px; }
+
+/* 고정 등록 바 높이에 맞춘 하단 공간 */
+.app-container { padding-bottom: calc(var(--bottom-bar-height, 96px) + 24px); }
+.upload-distance-notice { margin-top: 8px; padding: 8px 12px; font-size: 12px; }
