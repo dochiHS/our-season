@@ -162,7 +162,7 @@
     const count = seasonScreen.querySelector('.season-photo-count'), previous = seasonScreen.querySelector('.season-previous'), next = seasonScreen.querySelector('.season-next');
     if (!photos.length) {
       const empty = document.createElement('div'); empty.className = 'season-photo-empty'; empty.textContent = '이 계절 사진이 아직 없어요. 첫 사진을 올려 주세요'; stack.appendChild(empty);
-      metaTags.textContent = ''; memo.textContent = ''; credit.textContent = ''; count.textContent = '0 / 0'; previous.disabled = true; next.disabled = true;
+      metaTags.textContent = ''; memo.textContent = ''; memo.hidden = true; credit.textContent = ''; count.textContent = '0 / 0'; previous.disabled = true; next.disabled = true;
     } else {
       const currentIndex = Math.min(Math.max(state.photoIndex || 0, 0), photos.length - 1); state.photoIndex = currentIndex;
       if (photos.length > 1) {
@@ -173,7 +173,7 @@
       const image = document.createElement('img'); image.src = photos[currentIndex].dataUrl; image.alt = `${spot.name} ${seasonNames[route.season]} 사진 ${currentIndex + 1}`; image.loading = 'lazy'; photoCard.appendChild(image); stack.appendChild(photoCard);
       const photo = photos[currentIndex], timeLabel = timeNames[photo.timeOfDay] || '시간 미상';
       metaTags.replaceChildren(); [timeLabel, labelWeather(photo)].forEach(text => { const tag = document.createElement('span'); tag.className = 'season-photo-tag'; tag.textContent = text; metaTags.appendChild(tag); });
-      memo.textContent = photo.memo || '메모 없음';
+      memo.textContent = photo.memo || ''; memo.hidden = !photo.memo;
       credit.textContent = `${photo.nickname || '익명'} · ${formatPhotoDate(photo)}`;
       count.textContent = `${currentIndex + 1} / ${photos.length}`; previous.disabled = currentIndex === 0; next.disabled = currentIndex === photos.length - 1;
     }

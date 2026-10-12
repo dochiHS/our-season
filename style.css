@@ -264,3 +264,17 @@ button { color: inherit; }
 .other-season-tile.is-current .other-season-label { color: var(--color-primary-dark); font-weight: 800; }
 @media (min-width: 400px) { .season-view-content { padding-right: 20px; padding-left: 20px; } .other-seasons-grid { gap: 10px; } }
 @media (prefers-reduced-motion: reduce) { .season-photo-card, .season-photo-back, .season-tab { transition: none; } }
+
+/* 얼굴 확인 */
+.face-confirmation-group { margin-top: 14px; }
+.face-confirmation { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 6px 2px; color: var(--text-primary); font-size: 12px; cursor: pointer; }
+.face-confirmation input { flex: 0 0 18px; width: 18px; height: 18px; accent-color: var(--color-primary); }
+.face-confirmation-warning { margin-left: 30px; color: var(--color-danger); font-size: 11px; line-height: 1.4; }
+.face-confirmation-warning[hidden] { display: none; }
+
+/* 업로드 이어쓰기 */
+.upload-draft-resume { margin-bottom: 14px; padding: 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-md); background: var(--color-warning-bg); }
+.upload-draft-resume[hidden], .upload-draft-photo-missing[hidden] { display: none; }
+.upload-draft-resume-message { color: var(--color-primary-dark); font-size: 13px; font-weight: 700; }
+.upload-draft-resume button { min-height: 44px; margin-top: 6px; padding: 8px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: 12px; cursor: pointer; }
+.upload-draft-photo-missing { margin-top: 5px; color: var(--color-danger); font-size: 11px; }
