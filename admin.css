@@ -334,3 +334,6 @@ h1 {
     font-size: 13px;
   }
 }
+
+/* 승인·거절 버튼 높이와 위치 맞추기 */
+.card-actions .button { margin-top: 0; width: 100%; }

@@ -19,3 +19,76 @@
 .free-records-back::before {
   content: none;
 }
+
+/* 글자 대신 선으로 그린 아이콘: 폰 글꼴이 달라도 정중앙에 오도록 */
+.search-arrow,
+.spot-list-card-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  font-size: 0;
+  line-height: 0;
+}
+.search-arrow::before,
+.spot-list-card-arrow::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: translateX(-2px) rotate(45deg);
+}
+
+.season-nav-button,
+.viewer-nav-button {
+  font-size: 0;
+  line-height: 0;
+  padding: 0;
+}
+.season-nav-button::before,
+.viewer-nav-button::before {
+  content: '';
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateX(2px) rotate(45deg);
+}
+.season-nav-button.season-next::before,
+#btn-next-photo::before {
+  transform: translateX(-2px) rotate(-135deg);
+}
+
+.btn-close-modal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+}
+.btn-close-modal::before,
+.btn-close-modal::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.btn-close-modal::before { transform: translate(-50%, -50%) rotate(45deg); }
+.btn-close-modal::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* 명소 요약 카드: 일출·일몰 표시를 제목 묶음의 세로 중앙에 */
+.summary-header { align-items: center; }
