@@ -221,3 +221,46 @@ button { color: inherit; }
 .season-pile-count { color: var(--text-muted); font-size: 10px; white-space: nowrap; }
 .season-pile.is-current-season .season-pile-name { color: var(--color-primary-dark); }
 @media (min-width: 400px) { .season-pile { padding: 9px; } .season-pile-count { font-size: 11px; } }
+
+/* 계절 펼침 화면 */
+.season-screen { min-height: 100vh; padding-bottom: 24px; background: var(--bg-primary); }
+.season-topbar { min-height: 68px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--bg-border); }
+.season-back-button { flex: 0 0 44px; width: 44px; height: 44px; }
+.season-heading { min-width: 0; flex: 1; text-align: center; }
+.season-heading-title { overflow: hidden; color: var(--text-primary); font-family: var(--font-serif); font-size: 17px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.season-heading-point { overflow: hidden; color: var(--text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.season-topbar-spacer { flex: 0 0 44px; }
+.season-tabs { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0 16px; border-bottom: 1px solid var(--bg-border); background: var(--bg-surface); }
+.season-tab { min-height: 48px; position: relative; border: 0; background: transparent; color: var(--text-secondary); font-family: var(--font-serif); font-size: 14px; cursor: pointer; }
+.season-tab.is-active { color: var(--color-primary-dark); font-weight: 800; }
+.season-tab.is-active::after { position: absolute; right: 15%; bottom: 0; left: 15%; height: 3px; border-radius: 3px 3px 0 0; background: var(--color-primary); content: ''; }
+.season-view-content { padding: 18px 16px 34px; }
+.season-photo-area { padding: 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-card); }
+.season-photo-stack { position: relative; width: 100%; aspect-ratio: 4 / 3; touch-action: pan-y; }
+.season-photo-back { position: absolute; inset: 7px 9px 4px; border: 1px solid var(--bg-border); border-radius: var(--radius-md); background: #eee6da; box-shadow: 0 3px 9px rgba(59,52,45,.14); }
+.season-photo-back-one { transform: rotate(-4deg) translate(-4px, 1px); }
+.season-photo-back-two { transform: rotate(4deg) translate(4px, 1px); background: #f5eee4; }
+.season-photo-card { position: absolute; inset: 0; overflow: hidden; border: 1px solid rgba(59,52,45,.12); border-radius: var(--radius-md); background: var(--bg-subtle); box-shadow: 0 4px 14px rgba(59,52,45,.16); }
+.season-photo-card img { display: block; width: 100%; height: 100%; object-fit: contain; background: #eee9e1; }
+.season-photo-meta { display: grid; gap: 7px; padding: 13px 3px 2px; }
+.season-photo-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.season-photo-tag { min-height: 24px; display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 14px; background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 11px; font-weight: 600; }
+.season-photo-memo { min-height: 20px; color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.season-photo-credit { color: var(--text-muted); font-size: 11px; }
+.season-photo-navigation { min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 22px; }
+.season-nav-button { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--bg-border); border-radius: 50%; background: var(--bg-surface); color: var(--color-primary-dark); font-size: 25px; line-height: 1; cursor: pointer; }
+.season-nav-button:disabled { opacity: .38; cursor: default; }
+.season-photo-count { min-width: 60px; color: var(--text-secondary); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
+.season-photo-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 20px; border: 1px dashed var(--bg-border); border-radius: var(--radius-md); background: var(--bg-subtle); color: var(--text-secondary); font-family: var(--font-serif); font-size: 14px; line-height: 1.8; text-align: center; }
+.other-seasons-section { margin-top: 16px; }
+.other-seasons-section h2 { margin-bottom: 10px; color: var(--text-primary); font-family: var(--font-serif); font-size: 15px; font-weight: 700; }
+.other-seasons-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.other-season-tile { min-width: 0; min-height: 88px; display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 5px; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; cursor: pointer; }
+.other-season-tile.is-current { border-color: var(--color-primary); background: var(--color-primary-soft); box-shadow: 0 0 0 1px rgba(167,127,70,.15); }
+.other-season-thumb { aspect-ratio: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-subtle); }
+.other-season-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.other-season-thumb.is-empty { border-style: dashed; color: var(--text-muted); font-size: 9px; text-align: center; }
+.other-season-label { min-height: 20px; color: var(--text-secondary); font-family: var(--font-serif); font-size: 11px; font-weight: 600; text-align: center; }
+.other-season-tile.is-current .other-season-label { color: var(--color-primary-dark); font-weight: 800; }
+@media (min-width: 400px) { .season-view-content { padding-right: 20px; padding-left: 20px; } .other-seasons-grid { gap: 10px; } }
+@media (prefers-reduced-motion: reduce) { .season-photo-card, .season-photo-back, .season-tab { transition: none; } }

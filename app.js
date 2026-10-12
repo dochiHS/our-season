@@ -71,7 +71,7 @@
       state.approvedPhotos = (data || []).flatMap(row => {
         if (!global.SpotData.TIME_OF_DAY.includes(row.time_of_day)) return [];
         const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
-        return [{ dataUrl: publicData.publicUrl, memo: row.memo || '', nickname: row.nickname || '', spotId: row.spot_id, pointId: row.point_id, season: row.season, timeOfDay: row.time_of_day, weather: row.weather, weatherNote: row.weather_note || '', uploadedAt: row.created_at || row.taken_at || '' }];
+        return [{ dataUrl: publicData.publicUrl, memo: row.memo || '', nickname: row.nickname || '', spotId: row.spot_id, pointId: row.point_id, season: row.season, timeOfDay: row.time_of_day, weather: row.weather, weatherNote: row.weather_note || '', takenAt: row.taken_at || '', uploadedAt: row.created_at || row.taken_at || '' }];
       });
       refreshSpots(); renderTabs(); renderSummaryCard(); renderPointTabs(); renderMatrix(); notifySpotStateChange();
     } catch (error) { setAppNotice(`승인된 사진을 불러오지 못했습니다. ${error.message || ''}`.trim(), 'error'); }
@@ -117,7 +117,6 @@
         .sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
       const current = season === view.season;
       const pile = document.createElement('button'); pile.type = 'button'; pile.className = `season-pile${current ? ' is-current-season' : ''}${photos.length ? ' has-photos' : ' is-empty'}`;
-      pile.disabled = photos.length === 0;
       pile.setAttribute('aria-label', `${SEASONS_KO[season]} 사진 ${photos.length}장${photos.length ? ', 사진 보기' : ''}`);
       if (current) { pile.setAttribute('aria-current', view.isPreview ? 'true' : 'date'); pile.title = view.isPreview ? `현재 강조 계절: ${SEASONS_KO[season]} (미리보기)` : '오늘 날짜 기준 현재 계절'; }
       const stack = document.createElement('span'); stack.className = 'season-pile-stack';
@@ -130,14 +129,15 @@
         const timeTag = document.createElement('span'); timeTag.textContent = TIME_OF_DAY_KO[photos[0].timeOfDay] || '시간 미상';
         const weatherTag = document.createElement('span'); weatherTag.textContent = WEATHER_KO[photos[0].weather] || '날씨 미상';
         tags.append(timeTag, weatherTag); cover.appendChild(tags); stack.append(backOne, backTwo, cover);
-        pile.addEventListener('click', () => openPhotoDetail(photos, 0, spot.name, season, photos[0].timeOfDay));
       } else {
         const empty = document.createElement('span'); empty.className = 'season-pile-empty'; empty.textContent = '아직 사진이 없어요'; stack.appendChild(empty);
       }
       const caption = document.createElement('span'); caption.className = 'season-pile-caption';
       const seasonName = document.createElement('span'); seasonName.className = 'season-pile-name'; seasonName.textContent = SEASONS_KO[season];
       const count = document.createElement('span'); count.className = 'season-pile-count'; count.textContent = `사진 ${photos.length}장`;
-      caption.append(seasonName, count); pile.append(stack, caption); elements.photoMatrix.appendChild(pile);
+      caption.append(seasonName, count); pile.append(stack, caption);
+      pile.addEventListener('click', () => { if (global.Screens && typeof global.Screens.navigateSeason === 'function') global.Screens.navigateSeason(spot.id, season); });
+      elements.photoMatrix.appendChild(pile);
     });
   }
   function renderDetailPhoto() {
