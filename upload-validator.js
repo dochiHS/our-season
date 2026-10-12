@@ -88,7 +88,7 @@
         code: 'PHOTO_GPS_MISSING',
         type: 'photo_no_gps',
         title: '사진에 촬영 위치 정보가 없습니다',
-        message: '선택하신 사진에 GPS 위치 정보가 기록되어 있지 않아요. 카메라 설정에서 [위치 태그]를 켠 상태로 직접 촬영한 원본 사진을 올려주세요. 아이폰은 사진 선택 화면 위쪽 옵션에서 [위치 포함]을 켜 주세요. (카카오톡 전송이나 화면 캡처 사진은 위치 정보가 지워집니다.)'
+        message: '선택하신 사진에 GPS 위치 정보가 기록되어 있지 않아요. 카메라 설정에서 [위치 태그]를 켠 상태로 직접 촬영한 원본 사진을 올려주세요. 아이폰은 사진 선택 화면 위쪽 옵션에서 [위치 포함]을 켜 주세요. (카카오톡 전송이나 화면 캡처 사진은 위치 정보가 지워집니다.) 아이폰은 사진 선택 창의 사진 찍기 말고 카메라 앱으로 찍어서 올려 주세요.'
       };
     },
 
@@ -105,14 +105,14 @@
   };
 
   /**
-   * 업로드 가능 여부 종합 검증 함수 (2중 검증)
-   * 
+   * 업로드 가능 여부 종합 검증 함수 (현재 위치와 사진 EXIF GPS 2중 검증)
+   * 위치 좌표는 호출 시점마다 브라우저에서 새로 조회합니다.
+   *
    * @param {File} file - 업로드할 사진 파일
    * @param {Object} spot - 대상 명소 객체 { name, latitude, longitude, radiusMeters }
-   * @param {Object} [userCoords] - 사전에 조회된 사용자 좌표 { latitude, longitude } (미전달 시 브라우저에서 직접 조회)
    * @returns {Promise<{isValid: boolean, reasons: string[], errorItems: Array<{code: string, type: string, title: string, message: string}>, details: Object}>}
    */
-  async function validateUpload(file, spot, userCoords) {
+  async function validateUpload(file, spot) {
     var errorItems = [];
     var reasons = [];
     var details = {
@@ -126,9 +126,9 @@
     var radius = spot.radiusMeters || 500;
     var spotName = spot.name || '해당 명소';
 
-    // 1. 사용자 현재 위치 확인 및 거리 검증
+    // 1. 업로드 시점의 사용자 현재 위치를 새로 확인하고 거리 검증
     try {
-      var uCoords = userCoords || (await getCurrentUserPosition());
+      var uCoords = await getCurrentUserPosition({ maximumAge: 0 });
       details.userLocation = uCoords;
 
       var userDist = global.GeoCalculator.getDistanceInMeters(
@@ -154,6 +154,12 @@
       };
       errorItems.push(userLocErr);
       reasons.push('[' + userLocErr.title + '] ' + userLocErr.message);
+      return {
+        isValid: false,
+        errorItems: errorItems,
+        reasons: reasons,
+        details: details
+      };
     }
 
     // 2. 사진 EXIF GPS 확인 및 거리 검증

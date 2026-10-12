@@ -23,6 +23,11 @@
     detailPhotoTag: document.getElementById('detail-photo-tag'),
     detailPhotoNote: document.getElementById('detail-photo-note'),
     detailPhotoDate: document.getElementById('detail-photo-date'),
+    detailPhotoCount: document.getElementById('detail-photo-count'),
+    viewerNavigation: document.getElementById('viewer-navigation'),
+    btnPreviousPhoto: document.getElementById('btn-previous-photo'),
+    btnNextPhoto: document.getElementById('btn-next-photo'),
+    viewerImageWrap: document.getElementById('viewer-image-wrap'),
     btnCloseDetail: document.getElementById('btn-close-detail'),
     uploadTargetName: document.getElementById('upload-target-name'),
     btnRequestLocation: document.getElementById('btn-request-location'),
@@ -47,6 +52,10 @@
   };
 
   let isSubmitting = false;
+  let detailPhotos = [];
+  let detailPhotoIndex = 0;
+  let detailPhotoContext = null;
+  let swipeStartX = null;
 
   function getCurrentSpot() {
     return state.spots.find(spot => spot.id === state.currentSpotId) || null;
@@ -222,7 +231,7 @@
             slot.appendChild(badge);
           }
 
-          slot.addEventListener('click', () => openPhotoDetail(latestPhoto, currentSpot.name, seasonKey, lightKey));
+          slot.addEventListener('click', () => openPhotoDetail(photos, 0, currentSpot.name, seasonKey, lightKey));
         } else {
           const emptyIcon = document.createElement('span');
           emptyIcon.className = 'slot-empty-icon';
@@ -239,21 +248,54 @@
     });
   }
 
-  function openPhotoDetail(photo, spotName, seasonKey, lightKey) {
-    if (!elements.detailModal) return;
+  function renderDetailPhoto() {
+    if (!detailPhotos.length || !detailPhotoContext) return;
 
+    const photo = detailPhotos[detailPhotoIndex];
+    const { spotName, seasonKey, lightKey } = detailPhotoContext;
     const { SEASONS_KO, LIGHT_CONDITIONS_KO } = global.SpotData;
     elements.detailPhotoImg.src = photo.dataUrl;
     elements.detailPhotoTag.textContent = `${spotName} · ${SEASONS_KO[seasonKey]} · ${LIGHT_CONDITIONS_KO[lightKey]}`;
     elements.detailPhotoNote.textContent = photo.memo ? `“${photo.memo}”` : '';
     elements.detailPhotoDate.textContent = photo.uploadedAt ? `등록일: ${photo.uploadedAt}` : '';
+
+    const hasMultiplePhotos = detailPhotos.length > 1;
+    elements.viewerNavigation.hidden = !hasMultiplePhotos;
+    elements.detailPhotoCount.textContent = `${detailPhotoIndex + 1} / ${detailPhotos.length}`;
+    elements.btnPreviousPhoto.disabled = detailPhotoIndex === 0;
+    elements.btnNextPhoto.disabled = detailPhotoIndex === detailPhotos.length - 1;
+  }
+
+  function openPhotoDetail(photos, currentIndex, spotName, seasonKey, lightKey) {
+    if (!elements.detailModal || !Array.isArray(photos) || !photos.length) return;
+
+    detailPhotos = photos;
+    detailPhotoIndex = Math.max(0, Math.min(currentIndex, detailPhotos.length - 1));
+    detailPhotoContext = { spotName, seasonKey, lightKey };
+    renderDetailPhoto();
     elements.detailModal.classList.add('open');
+  }
+
+  function showPreviousPhoto() {
+    if (detailPhotoIndex <= 0) return;
+    detailPhotoIndex -= 1;
+    renderDetailPhoto();
+  }
+
+  function showNextPhoto() {
+    if (detailPhotoIndex >= detailPhotos.length - 1) return;
+    detailPhotoIndex += 1;
+    renderDetailPhoto();
   }
 
   function closePhotoDetail() {
     if (!elements.detailModal) return;
     elements.detailModal.classList.remove('open');
     elements.detailPhotoImg.src = '';
+    detailPhotos = [];
+    detailPhotoIndex = 0;
+    detailPhotoContext = null;
+    swipeStartX = null;
   }
 
   function selectSpot(spotId) {
@@ -423,10 +465,19 @@
         if (!located) throw new Error('현재 위치를 확인할 수 없습니다. 위치 권한을 허용한 뒤 다시 시도해 주세요.');
       }
 
-      const validation = await global.UploadValidator.validateUpload(file, target, state.userCoords);
+      const validation = await global.UploadValidator.validateUpload(file, target);
+      if (validation.details && validation.details.userLocation) {
+        state.userCoords = validation.details.userLocation;
+        refreshSpots();
+        renderTabs();
+        updateUploadButton();
+      }
+
       if (!validation.isValid) {
         const errors = validation.errorItems || [];
-        const message = errors.map(item => `${item.title}: ${item.message}`).join('\n\n');
+        const message = errors.length === 1
+          ? errors[0].message
+          : errors.map(item => `${item.title}: ${item.message}`).join('\n\n');
         setFeedback(
           'status-error',
           errors.length === 1 ? errors[0].title : `${errors.length}가지 확인이 필요합니다.`,
@@ -479,6 +530,24 @@
     updateUploadButton();
 
     if (elements.btnCloseDetail) elements.btnCloseDetail.addEventListener('click', closePhotoDetail);
+    if (elements.btnPreviousPhoto) elements.btnPreviousPhoto.addEventListener('click', showPreviousPhoto);
+    if (elements.btnNextPhoto) elements.btnNextPhoto.addEventListener('click', showNextPhoto);
+    if (elements.viewerImageWrap) {
+      elements.viewerImageWrap.addEventListener('touchstart', event => {
+        if (event.touches.length === 1) swipeStartX = event.touches[0].clientX;
+      }, { passive: true });
+      elements.viewerImageWrap.addEventListener('touchend', event => {
+        if (swipeStartX === null || !event.changedTouches.length) return;
+        const swipeDistance = event.changedTouches[0].clientX - swipeStartX;
+        swipeStartX = null;
+        if (Math.abs(swipeDistance) < 45 || detailPhotos.length < 2) return;
+        if (swipeDistance < 0) showNextPhoto();
+        else showPreviousPhoto();
+      }, { passive: true });
+      elements.viewerImageWrap.addEventListener('touchcancel', () => {
+        swipeStartX = null;
+      }, { passive: true });
+    }
     if (elements.detailModal) {
       elements.detailModal.addEventListener('click', event => {
         if (event.target === elements.detailModal) closePhotoDetail();

@@ -94,8 +94,13 @@
           <h3 id="viewer-title" class="sheet-title">사진 보기</h3>
           <button id="btn-close-detail" class="btn-close-modal" type="button" aria-label="닫기">×</button>
         </div>
-        <div class="viewer-image-wrap">
+        <div id="viewer-image-wrap" class="viewer-image-wrap">
           <img id="detail-photo-img" src="" alt="현장 사진">
+        </div>
+        <div id="viewer-navigation" class="viewer-navigation" aria-label="사진 탐색" hidden>
+          <button id="btn-previous-photo" class="viewer-nav-button" type="button" aria-label="이전 사진">‹</button>
+          <span id="detail-photo-count" class="viewer-photo-count" aria-live="polite"></span>
+          <button id="btn-next-photo" class="viewer-nav-button" type="button" aria-label="다음 사진">›</button>
         </div>
         <div class="viewer-meta-info">
           <p id="detail-photo-tag" style="font-weight: 600; color: var(--color-primary);"></p>
