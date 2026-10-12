@@ -12,23 +12,21 @@
     currentSpotId: null,
     currentPointId: null,
     userCoords: null,
-    approvedPhotos: []
+    approvedPhotos: [],
+    selectedTakenAt: null
   };
 
-  const LIGHT_TO_DATABASE = {
-    sunrise: { time_of_day: 'sunrise', weather: 'clear' },
-    clear: { time_of_day: 'day', weather: 'clear' },
-    sunset: { time_of_day: 'sunset', weather: 'clear' },
-    rain: { time_of_day: 'day', weather: 'rain' }
-  };
-  const DATABASE_TO_LIGHT = {
-    'sunrise:clear': 'sunrise',
-    'day:clear': 'clear',
-    'sunset:clear': 'sunset',
-    'day:rain': 'rain'
+  const WEATHER_KO = {
+    clear: '맑음',
+    cloudy: '흐림',
+    rain: '비',
+    snow: '눈',
+    fog: '안개',
+    other: '기타'
   };
 
   let supabaseClient = null;
+  let metadataRequestId = 0;
 
   // DOM 요소 캐시
   const elements = {
@@ -62,6 +60,10 @@
     uploadForm: document.getElementById('upload-form'),
     photoFileInput: document.getElementById('photo-file-input'),
     fileNamePreview: document.getElementById('file-name-preview'),
+    seasonInput: document.getElementById('season-input'),
+    seasonDisplay: document.getElementById('season-display'),
+    weatherNoteGroup: document.getElementById('weather-note-group'),
+    weatherNoteInput: document.getElementById('weather-note-input'),
     photoMemoInput: document.getElementById('photo-memo-input'),
     nicknameInput: document.getElementById('nickname-input'),
     validationFeedbackCard: document.getElementById('validation-feedback-card'),
@@ -163,19 +165,19 @@
   function applyApprovedPhotos() {
     state.spots.forEach(spot => {
       spot.points.forEach(point => {
-        Object.values(point.grid).forEach(lightSlots => {
-          Object.keys(lightSlots).forEach(lightKey => { lightSlots[lightKey] = []; });
+        Object.values(point.grid).forEach(timeSlots => {
+          Object.keys(timeSlots).forEach(timeKey => { timeSlots[timeKey] = []; });
         });
 
         state.approvedPhotos
           .filter(photo => photo.spotId === spot.id && (!photo.pointId || photo.pointId === point.id))
           .forEach(photo => {
-            const slot = point.grid[photo.season] && point.grid[photo.season][photo.lightCondition];
+            const slot = point.grid[photo.season] && point.grid[photo.season][photo.timeOfDay];
             if (slot) slot.push(photo);
           });
 
-        Object.values(point.grid).forEach(lightSlots => {
-          Object.values(lightSlots).forEach(photos => {
+        Object.values(point.grid).forEach(timeSlots => {
+          Object.values(timeSlots).forEach(photos => {
             photos.sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
           });
         });
@@ -193,14 +195,13 @@
     try {
       const { data, error } = await client
         .from('season_photos')
-        .select('spot_id, point_id, season, time_of_day, weather, memo, nickname, photo_path, created_at, taken_at')
+        .select('spot_id, point_id, season, time_of_day, weather, weather_note, memo, nickname, photo_path, created_at, taken_at')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
       if (error) throw error;
 
       state.approvedPhotos = (data || []).flatMap(row => {
-        const lightCondition = DATABASE_TO_LIGHT[`${row.time_of_day}:${row.weather}`];
-        if (!lightCondition) return [];
+        if (!global.SpotData.TIME_OF_DAY.includes(row.time_of_day)) return [];
         const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
         return [{
           dataUrl: publicData.publicUrl,
@@ -209,7 +210,9 @@
           spotId: row.spot_id,
           pointId: row.point_id,
           season: row.season,
-          lightCondition,
+          timeOfDay: row.time_of_day,
+          weather: row.weather,
+          weatherNote: row.weather_note || '',
           uploadedAt: row.created_at || row.taken_at || ''
         }];
       });
@@ -269,6 +272,7 @@
         state.currentPointId = point.id;
         renderPointTabs();
         renderMatrix();
+        if (global.SpotMap) global.SpotMap.refresh(false);
       });
       elements.pointTabs.appendChild(chip);
     });
@@ -329,7 +333,7 @@
 
     const selectedPoint = getCurrentPoint(currentSpot);
     const grid = selectedPoint ? selectedPoint.grid : null;
-    const { SEASONS, SEASONS_KO, LIGHT_CONDITIONS, LIGHT_CONDITIONS_KO } = global.SpotData;
+    const { SEASONS, SEASONS_KO, TIME_OF_DAY, TIME_OF_DAY_KO } = global.SpotData;
     const seasonView = getSeasonView();
     const focusedSeason = seasonView.season;
     elements.photoMatrix.innerHTML = '';
@@ -338,10 +342,10 @@
     cornerCell.className = 'grid-col-header';
     elements.photoMatrix.appendChild(cornerCell);
 
-    LIGHT_CONDITIONS.forEach(lightKey => {
+    TIME_OF_DAY.forEach(timeKey => {
       const colHeader = document.createElement('div');
       colHeader.className = 'grid-col-header';
-      colHeader.textContent = LIGHT_CONDITIONS_KO[lightKey];
+      colHeader.textContent = TIME_OF_DAY_KO[timeKey];
       elements.photoMatrix.appendChild(colHeader);
     });
 
@@ -358,20 +362,20 @@
       }
       elements.photoMatrix.appendChild(rowHeader);
 
-      LIGHT_CONDITIONS.forEach(lightKey => {
-        const photos = (grid && grid[seasonKey] && grid[seasonKey][lightKey]) || [];
+      TIME_OF_DAY.forEach(timeKey => {
+        const photos = (grid && grid[seasonKey] && grid[seasonKey][timeKey]) || [];
         const hasPhoto = photos.length > 0;
         const slot = document.createElement('div');
         slot.className = `matrix-slot ${hasPhoto ? 'is-filled' : ''}${isFocusedSeason ? ' is-current-season' : ''}`;
         slot.setAttribute('data-season', seasonKey);
-        slot.setAttribute('data-light', lightKey);
+        slot.setAttribute('data-time-of-day', timeKey);
         if (isFocusedSeason) slot.setAttribute('aria-current', seasonView.isPreview ? 'true' : 'date');
 
         if (hasPhoto) {
           const latestPhoto = photos[0];
           const img = document.createElement('img');
           img.src = latestPhoto.dataUrl;
-          img.alt = `${currentSpot.name} ${SEASONS_KO[seasonKey]} ${LIGHT_CONDITIONS_KO[lightKey]}`;
+          img.alt = `${currentSpot.name} ${SEASONS_KO[seasonKey]} ${TIME_OF_DAY_KO[timeKey]}`;
           img.loading = 'lazy';
           slot.appendChild(img);
 
@@ -382,15 +386,15 @@
             slot.appendChild(badge);
           }
 
-          slot.addEventListener('click', () => openPhotoDetail(photos, 0, currentSpot.name, seasonKey, lightKey));
+          slot.addEventListener('click', () => openPhotoDetail(photos, 0, currentSpot.name, seasonKey, timeKey));
         } else {
           const emptyIcon = document.createElement('span');
           emptyIcon.className = 'slot-empty-icon';
           emptyIcon.textContent = '+';
           slot.appendChild(emptyIcon);
-          slot.title = `${SEASONS_KO[seasonKey]}의 ${LIGHT_CONDITIONS_KO[lightKey]} 사진이 아직 없습니다.`;
+          slot.title = `${SEASONS_KO[seasonKey]}의 ${TIME_OF_DAY_KO[timeKey]} 사진이 아직 없습니다.`;
           slot.addEventListener('click', () => {
-            setAppNotice(`${currentSpot.name}의 [${SEASONS_KO[seasonKey]} · ${LIGHT_CONDITIONS_KO[lightKey]}] 사진이 아직 없습니다. 현장에 도착하시면 첫 번째 사진을 남겨보세요!`, 'info');
+            setAppNotice(`${currentSpot.name}의 [${SEASONS_KO[seasonKey]} · ${TIME_OF_DAY_KO[timeKey]}] 사진이 아직 없습니다. 현장에 도착하시면 첫 번째 사진을 남겨보세요!`, 'info');
           });
         }
 
@@ -403,10 +407,13 @@
     if (!detailPhotos.length || !detailPhotoContext) return;
 
     const photo = detailPhotos[detailPhotoIndex];
-    const { spotName, seasonKey, lightKey } = detailPhotoContext;
-    const { SEASONS_KO, LIGHT_CONDITIONS_KO } = global.SpotData;
+    const { spotName, seasonKey, timeKey } = detailPhotoContext;
+    const { SEASONS_KO, TIME_OF_DAY_KO } = global.SpotData;
+    const weatherTag = photo.weather === 'other'
+      ? (photo.weatherNote || WEATHER_KO.other)
+      : (WEATHER_KO[photo.weather] || '날씨 미상');
     elements.detailPhotoImg.src = photo.dataUrl;
-    elements.detailPhotoTag.textContent = `${spotName} · ${SEASONS_KO[seasonKey]} · ${LIGHT_CONDITIONS_KO[lightKey]}`;
+    elements.detailPhotoTag.textContent = `${spotName} · ${SEASONS_KO[seasonKey]} · ${TIME_OF_DAY_KO[timeKey]} · ${weatherTag}`;
     const noteParts = [];
     if (photo.nickname) noteParts.push(photo.nickname);
     if (photo.memo) noteParts.push(`“${photo.memo}”`);
@@ -420,12 +427,12 @@
     elements.btnNextPhoto.disabled = detailPhotoIndex === detailPhotos.length - 1;
   }
 
-  function openPhotoDetail(photos, currentIndex, spotName, seasonKey, lightKey) {
+  function openPhotoDetail(photos, currentIndex, spotName, seasonKey, timeKey) {
     if (!elements.detailModal || !Array.isArray(photos) || !photos.length) return;
 
     detailPhotos = photos;
     detailPhotoIndex = Math.max(0, Math.min(currentIndex, detailPhotos.length - 1));
-    detailPhotoContext = { spotName, seasonKey, lightKey };
+    detailPhotoContext = { spotName, seasonKey, timeKey };
     renderDetailPhoto();
     elements.detailModal.classList.add('open');
   }
@@ -461,6 +468,7 @@
     renderPointTabs();
     renderMatrix();
     updateUploadButton();
+    if (global.SpotMap) global.SpotMap.refresh(true);
   }
 
   function refreshSpots() {
@@ -560,9 +568,46 @@
     elements.feedbackHint.textContent = hint || '';
   }
 
+  function getCaptureSeason(takenAt) {
+    const date = takenAt ? new Date(takenAt) : new Date();
+    return global.SpotData.getCurrentSeason(Number.isNaN(date.getTime()) ? new Date() : date);
+  }
+
+  function formatKstDate(date) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}.${values.month}.${values.day}`;
+  }
+
+  function updateSeasonDisplay(takenAt) {
+    const season = getCaptureSeason(takenAt);
+    if (elements.seasonInput) elements.seasonInput.value = season;
+    if (elements.seasonDisplay) {
+      const reason = takenAt ? `촬영일 ${formatKstDate(new Date(takenAt))}` : '오늘 날짜 기준';
+      elements.seasonDisplay.value = `${global.SpotData.SEASONS_KO[season]} · ${reason}`;
+    }
+    if (elements.headerArch) elements.headerArch.dataset.season = season;
+  }
+
+  function updateWeatherNoteVisibility() {
+    if (!elements.weatherNoteGroup) return;
+    const weather = elements.uploadForm && new FormData(elements.uploadForm).get('weather');
+    elements.weatherNoteGroup.hidden = weather !== 'other';
+    if (weather !== 'other' && elements.weatherNoteInput) elements.weatherNoteInput.value = '';
+  }
+
   function resetUploadForm() {
     if (elements.uploadForm) elements.uploadForm.reset();
+    state.selectedTakenAt = null;
+    metadataRequestId += 1;
     if (elements.fileNamePreview) elements.fileNamePreview.textContent = '사진 선택하기';
+    updateSeasonDisplay(null);
+    updateWeatherNoteVisibility();
     setFeedback('', '', '', '');
     updateSubmitAvailability();
     updateSelectedChips();
@@ -578,6 +623,23 @@
       const label = input.closest('.chip-option');
       if (label) label.classList.toggle('selected', input.checked);
     });
+  }
+
+  async function readSelectedPhotoTime(file) {
+    const requestId = ++metadataRequestId;
+    state.selectedTakenAt = null;
+    updateSeasonDisplay(null);
+    if (!file || !global.ExifGpsReader || typeof global.ExifGpsReader.extractDateTimeOriginal !== 'function') return;
+    try {
+      const takenAt = await global.ExifGpsReader.extractDateTimeOriginal(file);
+      if (requestId !== metadataRequestId || !elements.photoFileInput || elements.photoFileInput.files[0] !== file) return;
+      state.selectedTakenAt = takenAt || null;
+      updateSeasonDisplay(state.selectedTakenAt);
+    } catch (error) {
+      if (requestId !== metadataRequestId) return;
+      state.selectedTakenAt = null;
+      updateSeasonDisplay(null);
+    }
   }
 
   async function openUploadModal() {
@@ -625,6 +687,12 @@
     return nickname;
   }
 
+  function validateWeatherNote(value) {
+    const note = value.trim();
+    if (Array.from(note).length > 10) throw new Error('날씨 메모는 10자 이하로 입력해 주세요.');
+    return note;
+  }
+
   async function handlePhotoSubmit(event) {
     event.preventDefault();
     if (isSubmitting) return;
@@ -638,15 +706,20 @@
     }
 
     const formData = new FormData(elements.uploadForm);
-    const season = formData.get('season');
-    const lightCondition = formData.get('lightCondition');
+    const timeOfDay = formData.get('time_of_day');
+    const weather = formData.get('weather');
     const memo = elements.photoMemoInput ? elements.photoMemoInput.value.trim() : '';
+    let weatherNote;
     let nickname;
     try {
+      if (!global.SpotData.TIME_OF_DAY.includes(timeOfDay)) throw new Error('시간대 항목을 선택해 주세요.');
+      if (!Object.prototype.hasOwnProperty.call(WEATHER_KO, weather)) throw new Error('날씨 항목을 선택해 주세요.');
+      weatherNote = validateWeatherNote(elements.weatherNoteInput ? elements.weatherNoteInput.value : '');
       nickname = validateNickname(elements.nicknameInput ? elements.nicknameInput.value : '');
     } catch (error) {
-      setFeedback('status-error', '닉네임을 확인해 주세요.', error.message);
-      if (elements.nicknameInput) elements.nicknameInput.focus();
+      setFeedback('status-error', '입력 내용을 확인해 주세요.', error.message);
+      if (error.message.includes('닉네임') && elements.nicknameInput) elements.nicknameInput.focus();
+      else if (error.message.includes('날씨 메모') && elements.weatherNoteInput) elements.weatherNoteInput.focus();
       return;
     }
 
@@ -684,6 +757,13 @@
         return;
       }
 
+      const capturedAt = validation.details && validation.details.photoLocation
+        ? validation.details.photoLocation.takenAt || null
+        : state.selectedTakenAt;
+      state.selectedTakenAt = capturedAt;
+      const season = getCaptureSeason(capturedAt);
+      updateSeasonDisplay(capturedAt);
+
       setFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 Supabase에 저장합니다.');
       const compressed = await global.ImageCompressor.compressImage(file);
       const photoPath = `${spot.id}/${createRandomUuid()}.jpg`;
@@ -696,21 +776,20 @@
         });
       if (uploadError) throw uploadError;
 
-      const mapping = LIGHT_TO_DATABASE[lightCondition];
-      if (!mapping) throw new Error('빛·날씨 항목을 확인해 주세요.');
+      const weatherNoteValue = weather === 'other' ? (weatherNote || null) : null;
       const { error: insertError } = await client
         .from('season_photos')
         .insert({
           spot_id: spot.id,
           point_id: validation.pointId,
           season,
-          time_of_day: mapping.time_of_day,
-          weather: mapping.weather,
-          weather_note: null,
+          time_of_day: timeOfDay,
+          weather,
+          weather_note: weatherNoteValue,
           memo: memo || null,
           nickname,
           photo_path: photoPath,
-          taken_at: new Date().toISOString()
+          taken_at: capturedAt || new Date().toISOString()
         });
       if (insertError) throw insertError;
 
@@ -732,6 +811,7 @@
     }
 
     updateCoverDate();
+    updateSeasonDisplay(null);
     refreshSpots();
     renderTabs();
     renderSummaryCard();
@@ -781,9 +861,16 @@
         if (elements.fileNamePreview) elements.fileNamePreview.textContent = file ? file.name : '사진 선택하기';
         setFeedback('', '', '', '');
         updateSubmitAvailability();
+        readSelectedPhotoTime(file);
       });
     }
-    if (elements.uploadForm) elements.uploadForm.addEventListener('change', updateSelectedChips);
+    if (elements.uploadForm) {
+      elements.uploadForm.addEventListener('change', event => {
+        if (event.target && event.target.name === 'weather') updateWeatherNoteVisibility();
+        updateSelectedChips();
+      });
+    }
+    updateWeatherNoteVisibility();
     updateSelectedChips();
   }
 
@@ -791,6 +878,7 @@
     state,
     renderTabs,
     renderSummaryCard,
+    renderPointTabs,
     renderMatrix,
     selectSpot,
     initApp

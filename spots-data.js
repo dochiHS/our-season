@@ -3,7 +3,7 @@
  * 일반 스크립트 방식이며 공개 API는 globalThis.SpotData에서 사용할 수 있습니다.
  *
  * 계층 구조:
- * 명소(Spot) -> 촬영 지점(Point, 명소마다 여러 지점을 둘 수 있음) -> 계절 4개 x 날씨/빛 4개 격자 슬롯
+ * 명소(Spot) -> 촬영 지점(Point, 명소마다 여러 지점을 둘 수 있음) -> 계절 4개 x 시간대 4개 격자 슬롯
  * 각 지점은 id, name, lat, lng, radiusMeters, description을 가집니다.
  *
  * 명소별 운영정보:
@@ -22,12 +22,12 @@
     winter: '겨울'
   };
 
-  const LIGHT_CONDITIONS = ['sunrise', 'clear', 'sunset', 'rain'];
-  const LIGHT_CONDITIONS_KO = {
+  const TIME_OF_DAY = ['sunrise', 'day', 'sunset', 'night'];
+  const TIME_OF_DAY_KO = {
     sunrise: '일출',
-    clear: '맑음',
+    day: '낮',
     sunset: '일몰',
-    rain: '비'
+    night: '밤'
   };
 
   /** 오늘 날짜(KST)의 달력 계절을 반환합니다. */
@@ -48,8 +48,8 @@
     const grid = {};
     for (const season of SEASONS) {
       grid[season] = {};
-      for (const light of LIGHT_CONDITIONS) {
-        grid[season][light] = [];
+      for (const timeOfDay of TIME_OF_DAY) {
+        grid[season][timeOfDay] = [];
       }
     }
     return grid;
@@ -262,8 +262,8 @@
   global.SpotData = Object.freeze({
     SEASONS,
     SEASONS_KO,
-    LIGHT_CONDITIONS,
-    LIGHT_CONDITIONS_KO,
+    TIME_OF_DAY,
+    TIME_OF_DAY_KO,
     CHEONGJU_SPOTS,
     getCurrentSeason,
     getSunTimes,

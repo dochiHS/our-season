@@ -13,6 +13,8 @@
 
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="gold-accent.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="map-styles.css">
 </head>
 <body>
   <div id="app" class="app-container">
@@ -62,6 +64,11 @@
       <!-- JS 동적 렌더링 -->
     </section>
 
+    <!-- 현재 명소 촬영 지점 지도 -->
+    <section class="spot-map-section" aria-label="촬영 지점 지도">
+      <div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div>
+    </section>
+
     <!-- 촬영 지점 선택 (지점이 여러 개인 명소에서만 표시) -->
     <nav id="point-tabs-section" class="point-tabs-section" aria-label="촬영 지점 선택" hidden>
       <div id="point-tabs" class="spots-tab-scroll point-tab-scroll"></div>
@@ -70,7 +77,7 @@
     <!-- 4 × 4 매트릭스 갤러리 섹션 -->
     <main class="matrix-section">
       <div class="matrix-header">
-        <h2 class="section-title">계절과 빛의 기록 (4×4)</h2>
+        <h2 class="section-title">계절과 시간대의 기록 (4×4)</h2>
         <span class="matrix-hint">각 칸을 터치해 사진을 감상해 보세요</span>
       </div>
 
@@ -127,26 +134,53 @@
         </div>
 
         <form id="upload-form" class="upload-form">
-          <!-- 계절 선택 -->
+          <!-- 계절은 사진 촬영 시각으로 자동 결정 -->
           <div class="form-group">
-            <label class="form-label">계절</label>
-            <div class="chips-selector" id="season-chips">
-              <label class="chip-option selected"><input type="radio" name="season" value="spring" checked hidden>봄</label>
-              <label class="chip-option"><input type="radio" name="season" value="summer" hidden>여름</label>
-              <label class="chip-option"><input type="radio" name="season" value="autumn" hidden>가을</label>
-              <label class="chip-option"><input type="radio" name="season" value="winter" hidden>겨울</label>
+            <label class="form-label" for="season-display">계절 (촬영 시각 기준)</label>
+            <input
+              type="text"
+              id="season-display"
+              value="오늘 날짜 기준"
+              readonly
+              aria-readonly="true"
+              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-secondary);"
+            >
+            <input type="hidden" id="season-input" name="season" value="spring">
+          </div>
+
+          <!-- 촬영 시간대 선택 -->
+          <div class="form-group">
+            <label class="form-label">시간대</label>
+            <div class="chips-selector" id="time-of-day-chips">
+              <label class="chip-option selected"><input type="radio" name="time_of_day" value="sunrise" checked hidden>일출</label>
+              <label class="chip-option"><input type="radio" name="time_of_day" value="day" hidden>낮</label>
+              <label class="chip-option"><input type="radio" name="time_of_day" value="sunset" hidden>일몰</label>
+              <label class="chip-option"><input type="radio" name="time_of_day" value="night" hidden>밤</label>
             </div>
           </div>
 
-          <!-- 빛/날씨 선택 -->
+          <!-- 날씨 선택 -->
           <div class="form-group">
-            <label class="form-label">빛 / 날씨</label>
-            <div class="chips-selector" id="light-chips">
-              <label class="chip-option selected"><input type="radio" name="lightCondition" value="sunrise" checked hidden>일출</label>
-              <label class="chip-option"><input type="radio" name="lightCondition" value="clear" hidden>맑음</label>
-              <label class="chip-option"><input type="radio" name="lightCondition" value="sunset" hidden>일몰</label>
-              <label class="chip-option"><input type="radio" name="lightCondition" value="rain" hidden>비</label>
+            <label class="form-label">날씨</label>
+            <div class="chips-selector" id="weather-chips">
+              <label class="chip-option selected"><input type="radio" name="weather" value="clear" checked hidden>맑음</label>
+              <label class="chip-option"><input type="radio" name="weather" value="cloudy" hidden>흐림</label>
+              <label class="chip-option"><input type="radio" name="weather" value="rain" hidden>비</label>
+              <label class="chip-option"><input type="radio" name="weather" value="snow" hidden>눈</label>
+              <label class="chip-option"><input type="radio" name="weather" value="fog" hidden>안개</label>
+              <label class="chip-option"><input type="radio" name="weather" value="other" hidden>기타</label>
             </div>
+          </div>
+          <div class="form-group" id="weather-note-group" hidden>
+            <label class="form-label" for="weather-note-input">날씨 메모 (10자 이하)</label>
+            <input
+              type="text"
+              id="weather-note-input"
+              name="weather_note"
+              maxlength="10"
+              placeholder="날씨를 적어 주세요"
+              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
+            >
           </div>
 
           <!-- 닉네임 입력 -->
@@ -220,6 +254,8 @@
   <script src="upload-validator.js"></script>
   <script src="supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="app.js"></script>
+  <script src="map-feature.js"></script>
 </body>
 </html>
