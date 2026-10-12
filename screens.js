@@ -48,7 +48,9 @@
     const hash = global.location.hash || '#/';
     if (hash === '#/' || hash === '#') return { screen: 'home' };
     if (hash === '#/spots') return { screen: 'spots' };
-    let match = hash.match(/^#\/spot\/([^/?]+)\/season\/(spring|summer|autumn|winter)(?:\?(.+))?$/);
+    let match = hash.match(/^#\/local(?:\?(.+))?$/);
+    if (match) return { screen: 'local', params: new URLSearchParams(match[1] || '') };
+    match = hash.match(/^#\/spot\/([^/?]+)\/season\/(spring|summer|autumn|winter)(?:\?(.+))?$/);
     if (match) {
       try { return { screen: 'season', spotId: decodeURIComponent(match[1]), season: match[2], params: new URLSearchParams(match[3] || '') }; }
       catch (error) { return { screen: 'home' }; }
@@ -222,14 +224,17 @@
 
   function renderRoute() {
     const route = routeFromHash(), cameFromSeason = state.activeScreen === 'season';
-    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season';
+    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season', isLocal = route.screen === 'local';
     home.hidden = !isHome; listScreen.hidden = !isList; detailScreen.hidden = route.screen !== 'detail';
+    const localScreen = document.getElementById('free-records-screen');
+    if (localScreen) localScreen.hidden = !isLocal;
     if (seasonScreen) seasonScreen.hidden = !isSeason;
     appContainer.classList.toggle('route-home', isHome);
     if (isList) {
       renderSpotList();
       if (state.focusSearchOnShow) { state.focusSearchOnShow = false; global.setTimeout(() => searchInput && searchInput.focus(), 0); }
     }
+    if (isLocal && global.FreeRecords) global.FreeRecords.render(route.params);
     if (route.screen === 'detail') {
       const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
       if (!spot) { navigate('#/spots', false, true); return; }
@@ -250,7 +255,7 @@
       restoreSeasonContext(route);
       state.photoIndex = 0; renderSeasonScreen(route);
     }
-    if (isHome || isList) state.lastSeasonContext = null;
+    if (isHome || isList || isLocal) state.lastSeasonContext = null;
     state.activeScreen = route.screen;
   }
 
@@ -276,6 +281,7 @@
   function initScreens() {
     if (!home || !listScreen || !detailScreen || !list || !seasonScreen) return;
     document.getElementById('btn-open-spots').addEventListener('click', () => navigate('#/spots', true));
+    document.getElementById('btn-open-local-records').addEventListener('click', () => navigate('#/local'));
     document.getElementById('btn-list-back').addEventListener('click', () => navigate('#/', false, true));
     document.getElementById('btn-detail-back').addEventListener('click', () => navigate('#/spots', false, true));
     document.querySelectorAll('[data-spot-sort]').forEach(button => button.addEventListener('click', async () => {

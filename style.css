@@ -282,3 +282,34 @@ button { color: inherit; }
 /* 고정 등록 바 높이에 맞춘 하단 공간 */
 .app-container { padding-bottom: calc(var(--bottom-bar-height, 96px) + 24px); }
 .upload-distance-notice { margin-top: 8px; padding: 8px 12px; font-size: 12px; }
+
+/* 우리 동네 기록 목록 */
+.free-records-screen { min-height: 100vh; padding-bottom: 112px; background: var(--bg-primary); }
+.free-records-topbar { min-height: 68px; }
+.free-records-back { flex: 0 0 44px; width: 44px; height: 44px; }
+.free-records-title { min-width: 0; flex: 1; color: var(--text-primary); font-family: var(--font-serif); font-size: 18px; font-weight: 700; text-align: center; }
+.free-records-topbar-spacer { flex: 0 0 44px; }
+.free-records-filters { display: grid; gap: 8px; padding: 12px 16px 8px; }
+.free-records-filter-row { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.free-records-filter-row::-webkit-scrollbar { display: none; }
+.free-records-filter-row .spot-sort-button { flex: 0 0 auto; min-height: 34px; padding: 6px 12px; }
+.free-record-list { display: grid; gap: 14px; padding: 6px 16px 24px; }
+.free-record-card { overflow: hidden; border: 1px solid var(--bg-border); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-card); }
+.free-record-photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--bg-subtle); }
+.free-record-card-body { display: grid; gap: 7px; padding: 13px 14px 15px; }
+.free-record-place { color: var(--text-primary); font-family: var(--font-serif); font-size: 17px; font-weight: 700; }
+.free-record-city { color: var(--text-muted); font-size: 12px; }
+.free-record-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.free-record-memo { color: var(--text-primary); font-size: 13px; line-height: 1.55; }
+.free-record-memo[hidden] { display: none; }
+.free-record-credit { color: var(--text-muted); font-size: 11px; }
+.free-records-message { padding: 48px 12px; color: var(--text-secondary); font-family: var(--font-serif); font-size: 14px; line-height: 1.8; text-align: center; }
+.free-records-message.is-error { color: var(--color-danger); }
+.free-records-bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; z-index: 50; display: flex; justify-content: center; padding: 12px 16px 20px; background: linear-gradient(180deg,rgba(250,246,239,0) 0%,rgba(250,246,239,.96) 35%,rgba(250,246,239,1) 100%); }
+.free-records-upload-button { width: 100%; max-width: 448px; min-height: 50px; }
+
+/* 첫 화면 동네 기록 입구 + 지역 필터 터치 높이 */
+.home-local-button { width: 100%; min-height: 54px; margin-top: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 7px 14px; border: 1px solid #D9C49F; border-radius: var(--radius-lg); background: #F5EEDF; color: #705B3F; box-shadow: none; text-align: center; cursor: pointer; }
+.home-local-button-title { font-size: 13px; font-weight: 600; }
+.home-local-button-cities { font-size: 10px; line-height: 1.35; }
+.free-records-filter-row .spot-sort-button { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
