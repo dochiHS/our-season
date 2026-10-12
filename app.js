@@ -67,9 +67,11 @@
     const client = getSupabaseClient();
     if (!client) { setAppNotice('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.', 'error'); return; }
     try {
-      const { data, error } = await client.from('season_photos').select('spot_id, point_id, season, time_of_day, weather, weather_note, memo, nickname, photo_path, created_at, taken_at').eq('status', 'approved').order('created_at', { ascending: false });
+      const { data, error } = await client.from('season_photos').select('kind, spot_id, point_id, season, time_of_day, weather, weather_note, memo, nickname, photo_path, created_at, taken_at').eq('status', 'approved').order('created_at', { ascending: false });
       if (error) throw error;
       state.approvedPhotos = (data || []).flatMap(row => {
+        const kind = typeof row.kind === 'string' ? row.kind.trim() : '';
+        if (kind && kind !== 'spot') return [];
         if (!global.SpotData.TIME_OF_DAY.includes(row.time_of_day)) return [];
         const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
         return [{ dataUrl: publicData.publicUrl, memo: row.memo || '', nickname: row.nickname || '', spotId: row.spot_id, pointId: row.point_id, season: row.season, timeOfDay: row.time_of_day, weather: row.weather, weatherNote: row.weather_note || '', takenAt: row.taken_at || '', uploadedAt: row.created_at || row.taken_at || '' }];
@@ -221,6 +223,9 @@
     if ((forceLocationCheck === true || !state.userCoords) && !(await requestUserLocation(true))) return false;
     const spot = getCurrentSpot(); if (!spot) return false;
     const status = getNearestPointStatus(spot); if (!status || !status.withinAnyPoint) { updateUploadButton(); return false; }
+    const point = getCurrentPoint(spot), radius = point && Number.isFinite(Number(point.radiusMeters)) ? Number(point.radiusMeters) : 500;
+    const radiusNotice = document.querySelector('.upload-sub-text');
+    if (radiusNotice) radiusNotice.textContent = `현장 반경 ${radius}m 이내 촬영 원본 (위치 정보 필수)`;
     resetUploadForm(); if (elements.uploadModal) elements.uploadModal.classList.add('open'); return true;
   }
   function closeUploadModal() { if (elements.uploadModal) elements.uploadModal.classList.remove('open'); }
