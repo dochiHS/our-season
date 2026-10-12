@@ -156,33 +156,13 @@
     };
   }
 
-  const STORAGE_KEY = 'cheongju_spots_custom_photos_v2';
-
-  /** 로컬스토리지에 저장된 사용자 추가 사진을 명소/지점/격자 슬롯에 병합하여 반환 */
+  /** 명소와 빈 격자 정보를 반환합니다. 사진 데이터는 Supabase에서 가져옵니다. */
   function getAllSpots() {
-    const customPhotos = getCustomPhotos();
-
     return CHEONGJU_SPOTS.map(spot => {
-      const points = spot.points.map(point => {
-        const grid = createEmptyGrid();
-
-        for (const season of SEASONS) {
-          for (const light of LIGHT_CONDITIONS) {
-            grid[season][light] = [...(point.grid[season]?.[light] || [])];
-          }
-        }
-
-        customPhotos
-          .filter(photo => photo.spotId === spot.id && (!photo.pointId || photo.pointId === point.id))
-          .forEach(photo => {
-            if (grid[photo.season] && grid[photo.season][photo.lightCondition]) {
-              grid[photo.season][photo.lightCondition].push(photo);
-            }
-          });
-
-        return { ...point, grid };
-      });
-
+      const points = spot.points.map(point => ({
+        ...point,
+        grid: createEmptyGrid()
+      }));
       const sunTimes = getSunTimes(points[0].lat, points[0].lng);
       return { ...spot, sunTimes, points };
     });
@@ -220,39 +200,6 @@
     return spots.find(spot => spot.id === spotId) || null;
   }
 
-  /** 검증 완료된 새 사진을 명소/지점의 계절x빛 슬롯에 저장 */
-  function addPhotoToSpot(spotId, pointId, photoData) {
-    const spot = CHEONGJU_SPOTS.find(item => item.id === spotId);
-    const targetPointId = pointId || (spot && spot.points[0]?.id) || 'main';
-    const existing = getCustomPhotos();
-    const newEntry = {
-      ...photoData,
-      id: `custom-${Date.now()}`,
-      spotId,
-      pointId: targetPointId,
-      season: photoData.season,
-      lightCondition: photoData.lightCondition,
-      uploadedAt: new Date().toISOString().slice(0, 10)
-    };
-
-    const updated = [newEntry, ...existing];
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (err) {
-      console.error('로컬스토리지 저장 실패:', err);
-    }
-    return newEntry;
-  }
-
-  function getCustomPhotos() {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch (err) {
-      return [];
-    }
-  }
-
   // Haversine 공식으로 두 좌표 사이의 거리를 미터 단위로 계산
   function calculateDistanceMeters(lat1, lng1, lat2, lng2) {
     const earthRadiusMeters = 6371000;
@@ -275,7 +222,6 @@
     getSunTimes,
     getAllSpots,
     getSpotsSortedByDistance,
-    getSpotById,
-    addPhotoToSpot
+    getSpotById
   });
 })(globalThis);

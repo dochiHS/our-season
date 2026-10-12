@@ -144,6 +144,22 @@
             </div>
           </div>
 
+          <!-- 닉네임 입력 -->
+          <div class="form-group">
+            <label class="form-label" for="nickname-input">닉네임 (1~20자)</label>
+            <input
+              type="text"
+              id="nickname-input"
+              name="nickname"
+              minlength="1"
+              maxlength="20"
+              required
+              autocomplete="nickname"
+              placeholder="닉네임을 입력해 주세요"
+              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
+            >
+          </div>
+
           <!-- 사진 파일 선택 박스 -->
           <div class="form-group">
             <label class="form-label">사진 파일 (JPEG/PNG)</label>
@@ -167,6 +183,7 @@
             <input
               type="text"
               id="photo-memo-input"
+              name="memo"
               maxlength="30"
               placeholder="예: 해질녘 토성 앞 노을빛"
               style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
@@ -196,6 +213,8 @@
   <script src="spots-data.js"></script>
   <script src="image-compressor.js"></script>
   <script src="upload-validator.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

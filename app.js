@@ -1,7 +1,7 @@
 /**
  * app.js - 명소 탐색 및 현장 사진 등록 애플리케이션
  * 일반 스크립트 방식이며 공개 API는 globalThis.App에서 사용할 수 있습니다.
- * 의존 API: globalThis.SpotData, globalThis.UploadValidator, globalThis.ImageCompressor
+ * 의존 API: globalThis.SpotData, globalThis.UploadValidator, globalThis.ImageCompressor, globalThis.supabase
  */
 (function (global) {
   'use strict';
@@ -10,8 +10,24 @@
   const state = {
     spots: [],
     currentSpotId: null,
-    userCoords: null
+    userCoords: null,
+    approvedPhotos: []
   };
+
+  const LIGHT_TO_DATABASE = {
+    sunrise: { time_of_day: 'sunrise', weather: 'clear' },
+    clear: { time_of_day: 'day', weather: 'clear' },
+    sunset: { time_of_day: 'sunset', weather: 'clear' },
+    rain: { time_of_day: 'day', weather: 'rain' }
+  };
+  const DATABASE_TO_LIGHT = {
+    'sunrise:clear': 'sunrise',
+    'day:clear': 'clear',
+    'sunset:clear': 'sunset',
+    'day:rain': 'rain'
+  };
+
+  let supabaseClient = null;
 
   // DOM 요소 캐시
   const elements = {
@@ -44,6 +60,7 @@
     photoFileInput: document.getElementById('photo-file-input'),
     fileNamePreview: document.getElementById('file-name-preview'),
     photoMemoInput: document.getElementById('photo-memo-input'),
+    nicknameInput: document.getElementById('nickname-input'),
     validationFeedbackCard: document.getElementById('validation-feedback-card'),
     feedbackTitle: document.getElementById('feedback-title'),
     feedbackMessage: document.getElementById('feedback-message'),
@@ -59,6 +76,15 @@
 
   function getCurrentSpot() {
     return state.spots.find(spot => spot.id === state.currentSpotId) || null;
+  }
+
+  function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+    const config = global.SUPABASE_CONFIG;
+    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) return null;
+    if (!global.supabase || typeof global.supabase.createClient !== 'function') return null;
+    supabaseClient = global.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    return supabaseClient;
   }
 
   /** URL의 유효한 season 값이 있으면 미리보기 계절로, 없으면 오늘의 KST 계절로 설정합니다. */
@@ -95,6 +121,68 @@
 
     elements.headerDateLine.textContent = `CHEONGJU · ${now.getUTCFullYear()} · ${season.toUpperCase()}${isPreview ? ' · PREVIEW' : ''}`;
     if (elements.headerArch) elements.headerArch.dataset.season = season;
+  }
+
+  function applyApprovedPhotos() {
+    state.spots.forEach(spot => {
+      spot.points.forEach(point => {
+        Object.values(point.grid).forEach(lightSlots => {
+          Object.keys(lightSlots).forEach(lightKey => { lightSlots[lightKey] = []; });
+        });
+
+        state.approvedPhotos
+          .filter(photo => photo.spotId === spot.id && (!photo.pointId || photo.pointId === point.id))
+          .forEach(photo => {
+            const slot = point.grid[photo.season] && point.grid[photo.season][photo.lightCondition];
+            if (slot) slot.push(photo);
+          });
+
+        Object.values(point.grid).forEach(lightSlots => {
+          Object.values(lightSlots).forEach(photos => {
+            photos.sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
+          });
+        });
+      });
+    });
+  }
+
+  async function loadApprovedPhotos() {
+    const client = getSupabaseClient();
+    if (!client) {
+      setAppNotice('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.', 'error');
+      return;
+    }
+
+    try {
+      const { data, error } = await client
+        .from('season_photos')
+        .select('spot_id, point_id, season, time_of_day, weather, memo, nickname, photo_path, created_at, taken_at')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      state.approvedPhotos = (data || []).flatMap(row => {
+        const lightCondition = DATABASE_TO_LIGHT[`${row.time_of_day}:${row.weather}`];
+        if (!lightCondition) return [];
+        const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
+        return [{
+          dataUrl: publicData.publicUrl,
+          memo: row.memo || '',
+          nickname: row.nickname || '',
+          spotId: row.spot_id,
+          pointId: row.point_id,
+          season: row.season,
+          lightCondition,
+          uploadedAt: row.created_at || row.taken_at || ''
+        }];
+      });
+      refreshSpots();
+      renderTabs();
+      renderSummaryCard();
+      renderMatrix();
+    } catch (error) {
+      setAppNotice(`승인된 사진을 불러오지 못했습니다. ${error.message || ''}`.trim(), 'error');
+    }
   }
 
   function renderTabs() {
@@ -256,7 +344,10 @@
     const { SEASONS_KO, LIGHT_CONDITIONS_KO } = global.SpotData;
     elements.detailPhotoImg.src = photo.dataUrl;
     elements.detailPhotoTag.textContent = `${spotName} · ${SEASONS_KO[seasonKey]} · ${LIGHT_CONDITIONS_KO[lightKey]}`;
-    elements.detailPhotoNote.textContent = photo.memo ? `“${photo.memo}”` : '';
+    const noteParts = [];
+    if (photo.nickname) noteParts.push(photo.nickname);
+    if (photo.memo) noteParts.push(`“${photo.memo}”`);
+    elements.detailPhotoNote.textContent = noteParts.join(' · ');
     elements.detailPhotoDate.textContent = photo.uploadedAt ? `등록일: ${photo.uploadedAt}` : '';
 
     const hasMultiplePhotos = detailPhotos.length > 1;
@@ -312,6 +403,7 @@
       ? { lat: state.userCoords.latitude, lng: state.userCoords.longitude }
       : null;
     state.spots = global.SpotData.getSpotsSortedByDistance(userCoords);
+    applyApprovedPhotos();
 
     if (state.spots.some(spot => spot.id === previousSpotId)) {
       state.currentSpotId = previousSpotId;
@@ -438,6 +530,28 @@
     if (elements.uploadModal) elements.uploadModal.classList.remove('open');
   }
 
+  function createRandomUuid() {
+    if (global.crypto && typeof global.crypto.randomUUID === 'function') return global.crypto.randomUUID();
+    if (!global.crypto || typeof global.crypto.getRandomValues !== 'function') {
+      throw new Error('안전한 무작위 ID를 만들 수 없습니다. HTTPS 환경에서 다시 시도해 주세요.');
+    }
+    const bytes = new Uint8Array(16);
+    global.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    return Array.from(bytes, (byte, index) => {
+      const value = byte.toString(16).padStart(2, '0');
+      return [4, 6, 8, 10].includes(index) ? `-${value}` : value;
+    }).join('');
+  }
+
+  function validateNickname(value) {
+    const nickname = value.trim();
+    const length = Array.from(nickname).length;
+    if (length < 1 || length > 20) throw new Error('닉네임을 1~20자로 입력해 주세요.');
+    return nickname;
+  }
+
   async function handlePhotoSubmit(event) {
     event.preventDefault();
     if (isSubmitting) return;
@@ -454,12 +568,23 @@
     const season = formData.get('season');
     const lightCondition = formData.get('lightCondition');
     const memo = elements.photoMemoInput ? elements.photoMemoInput.value.trim() : '';
+    let nickname;
+    try {
+      nickname = validateNickname(elements.nicknameInput ? elements.nicknameInput.value : '');
+    } catch (error) {
+      setFeedback('status-error', '닉네임을 확인해 주세요.', error.message);
+      if (elements.nicknameInput) elements.nicknameInput.focus();
+      return;
+    }
 
     isSubmitting = true;
     updateSubmitAvailability();
     setFeedback('status-checking', '위치와 사진 정보를 확인하고 있습니다.', '원본 사진의 EXIF GPS와 현재 위치를 확인합니다.');
 
     try {
+      const client = getSupabaseClient();
+      if (!client) throw new Error('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.');
+
       if (!state.userCoords) {
         const located = await requestUserLocation(false);
         if (!located) throw new Error('현재 위치를 확인할 수 없습니다. 위치 권한을 허용한 뒤 다시 시도해 주세요.');
@@ -486,23 +611,39 @@
         return;
       }
 
-      setFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
+      setFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 Supabase에 저장합니다.');
       const compressed = await global.ImageCompressor.compressImage(file);
-      global.SpotData.addPhotoToSpot(spot.id, targetPointId(spot), {
-        dataUrl: compressed.dataUrl,
-        memo,
-        season,
-        lightCondition
-      });
+      const photoPath = `${spot.id}/${createRandomUuid()}.jpg`;
+      const { error: uploadError } = await client.storage
+        .from('season-photos')
+        .upload(photoPath, compressed.blob, {
+          cacheControl: '3600',
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+      if (uploadError) throw uploadError;
 
-      refreshSpots();
-      renderTabs();
-      renderSummaryCard();
-      renderMatrix();
-      updateUploadButton();
+      const mapping = LIGHT_TO_DATABASE[lightCondition];
+      if (!mapping) throw new Error('빛·날씨 항목을 확인해 주세요.');
+      const { error: insertError } = await client
+        .from('season_photos')
+        .insert({
+          spot_id: spot.id,
+          point_id: targetPointId(spot),
+          season,
+          time_of_day: mapping.time_of_day,
+          weather: mapping.weather,
+          weather_note: null,
+          memo: memo || null,
+          nickname,
+          photo_path: photoPath,
+          taken_at: new Date().toISOString()
+        });
+      if (insertError) throw insertError;
+
       closeUploadModal();
       resetUploadForm();
-      setAppNotice('현장 사진이 등록되었습니다.', 'success');
+      setAppNotice('등록됐어요. 운영자 승인 후 공개됩니다.', 'success');
     } catch (error) {
       setFeedback('status-error', '사진을 등록하지 못했습니다.', error.message || '위치 확인 또는 사진 처리 중 오류가 발생했습니다.');
     } finally {
@@ -528,6 +669,7 @@
     renderSummaryCard();
     renderMatrix();
     updateUploadButton();
+    loadApprovedPhotos();
 
     if (elements.btnCloseDetail) elements.btnCloseDetail.addEventListener('click', closePhotoDetail);
     if (elements.btnPreviousPhoto) elements.btnPreviousPhoto.addEventListener('click', showPreviousPhoto);
