@@ -1,0 +1,10 @@
+.back-button,
+.season-back-button,
+.free-records-back {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 0 2px 0;
+}

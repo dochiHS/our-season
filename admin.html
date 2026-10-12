@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>관리자 승인</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <section id="login-view" class="login-view" aria-labelledby="login-title">
+      <div class="page-heading">
+        <p class="eyebrow">OUR PLACE, OUR SEASON</p>
+        <h1 id="login-title">관리자 로그인</h1>
+      </div>
+      <form id="login-form" class="login-form">
+        <label for="email-input">이메일</label>
+        <input id="email-input" name="email" type="email" autocomplete="username" required>
+        <label for="password-input">비밀번호</label>
+        <input id="password-input" name="password" type="password" autocomplete="current-password" required>
+        <button id="login-button" class="button button-primary" type="submit">로그인</button>
+      </form>
+      <p id="login-message" class="message" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <section id="admin-view" class="admin-view" aria-labelledby="admin-title" hidden>
+      <header class="admin-header">
+        <div>
+          <p class="eyebrow">OUR PLACE, OUR SEASON</p>
+          <h1 id="admin-title">사진 승인</h1>
+        </div>
+        <button id="logout-button" class="button button-secondary" type="button">로그아웃</button>
+      </header>
+      <div class="queue-toolbar">
+        <h2 id="pending-count">승인 대기 0장</h2>
+        <button id="refresh-button" class="button button-secondary" type="button">새로고침</button>
+      </div>
+      <p id="admin-message" class="message" role="status" aria-live="polite" hidden></p>
+      <div id="pending-list" class="pending-list" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="spots-data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
