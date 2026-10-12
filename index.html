@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>그 자리, 그 계절 - 청주 출사 명소 아카이브</title>
-
-  <!-- 표지용 필기체·명조와 본문 서체 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Nanum+Myeongjo:wght@400;700;800&family=Pinyon+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="gold-accent.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -18,86 +15,109 @@
 </head>
 <body>
   <div id="app" class="app-container">
-    <!-- 상단 표지: 아치 풍경과 위치 기능 버튼 -->
-    <header class="app-header">
-      <div class="header-content">
-        <div class="header-petals" aria-hidden="true">
-          <span class="header-petal"></span>
-          <span class="header-petal"></span>
-          <span class="header-petal"></span>
-          <span class="header-petal"></span>
-          <span class="header-petal"></span>
+    <!-- 첫 화면 표지: 기존 표지 요소를 그대로 유지 -->
+    <section id="home-screen" class="screen" aria-label="첫 화면">
+      <header class="app-header">
+        <div class="header-content">
+          <div class="header-petals" aria-hidden="true">
+            <span class="header-petal"></span><span class="header-petal"></span><span class="header-petal"></span><span class="header-petal"></span><span class="header-petal"></span>
+          </div>
+          <div class="header-script" aria-hidden="true">our place, our season</div>
+          <div class="header-arch" aria-hidden="true">
+            <svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+              <circle class="arch-sun-halo" cx="150" cy="220" r="58"></circle>
+              <circle class="arch-sun" cx="150" cy="220" r="38"></circle>
+              <path class="arch-hill arch-hill-back" d="M0 252 Q55 228 112 246 T218 238 T300 246 V400 H0Z"></path>
+              <path class="arch-hill arch-hill-front" d="M0 278 Q78 250 155 271 T300 264 V400 H0Z"></path>
+            </svg>
+          </div>
+          <time id="header-date-line" class="header-date-line">CHEONGJU · PHOTO ARCHIVE</time>
+          <div class="header-copy">
+            <h1 class="brand-title">그 자리, 그 계절</h1>
+            <p class="brand-subtitle">청주 출사 명소 아카이브</p>
+          </div>
+          <div class="header-flourish" aria-hidden="true">✦</div>
         </div>
-        <div class="header-script" aria-hidden="true">our place, our season</div>
-        <div class="header-arch" aria-hidden="true">
-          <svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
-            <circle class="arch-sun-halo" cx="150" cy="220" r="58"></circle>
-            <circle class="arch-sun" cx="150" cy="220" r="38"></circle>
-            <path class="arch-hill arch-hill-back" d="M0 252 Q55 228 112 246 T218 238 T300 246 V400 H0Z"></path>
-            <path class="arch-hill arch-hill-front" d="M0 278 Q78 250 155 271 T300 264 V400 H0Z"></path>
-          </svg>
-        </div>
-        <time id="header-date-line" class="header-date-line">CHEONGJU · PHOTO ARCHIVE</time>
-        <div class="header-copy">
-          <h1 class="brand-title">그 자리, 그 계절</h1>
-          <p class="brand-subtitle">청주 출사 명소 아카이브</p>
-        </div>
-        <div class="header-flourish" aria-hidden="true">✦</div>
-        <button id="btn-request-location" class="btn-gps-sync" type="button" title="내 위치로 가까운 명소 정렬">
-          <span class="gps-dot"></span>
-          <span id="gps-status-label">내 위치 켜기</span>
+      </header>
+      <div class="home-search-wrap">
+        <button id="btn-open-spots" class="home-search-button" type="button">
+          <span class="search-icon" aria-hidden="true"></span>
+          <span>어디로 출사 갈까요? 명소 찾기</span>
+          <span class="search-arrow" aria-hidden="true">›</span>
         </button>
       </div>
-    </header>
-
-    <div id="app-status-notice" class="app-status-notice" role="status" aria-live="polite" hidden></div>
-
-    <!-- 명소 선택 탭 (위치 허용 시 가까운 순 정렬 & 거리 뱃지) -->
-    <nav class="spots-nav-section" aria-label="명소 선택">
-      <div id="spot-tabs" class="spot-tab-scroll">
-        <!-- JS 동적 렌더링 -->
-      </div>
-    </nav>
-
-    <!-- 명소 요약 카드 (일출·일몰, 주차 가능, 주의 메모) -->
-    <section id="spot-summary-card" class="spot-summary-card" aria-live="polite">
-      <!-- JS 동적 렌더링 -->
     </section>
 
-    <!-- 현재 명소 촬영 지점 지도 -->
-    <section class="spot-map-section" aria-label="촬영 지점 지도">
-      <div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div>
+    <!-- 명소 목록 화면 -->
+    <section id="spots-screen" class="screen spots-screen" aria-label="명소 목록" hidden>
+      <header class="screen-topbar">
+        <button id="btn-list-back" class="back-button" type="button" aria-label="첫 화면으로 돌아가기">‹</button>
+        <label class="screen-search-box" for="spot-search-input">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="spot-search-input" type="search" placeholder="명소 이름 검색" autocomplete="off" aria-label="명소 이름 검색">
+          <span class="search-shortcut">검색</span>
+        </label>
+      </header>
+      <div class="spot-sort-row" role="group" aria-label="명소 정렬">
+        <button class="spot-sort-button" data-spot-sort="nearest" type="button" aria-pressed="false">내 주변 가까운 순</button>
+        <button class="spot-sort-button" data-spot-sort="name" type="button" aria-pressed="true">이름 순</button>
+      </div>
+      <div id="spot-list" class="spot-list" aria-live="polite"></div>
     </section>
 
-    <!-- 촬영 지점 선택 (지점이 여러 개인 명소에서만 표시) -->
-    <nav id="point-tabs-section" class="point-tabs-section" aria-label="촬영 지점 선택" hidden>
-      <div id="point-tabs" class="spots-tab-scroll point-tab-scroll"></div>
-    </nav>
-
-    <!-- 4 × 4 매트릭스 갤러리 섹션 -->
-    <main class="matrix-section">
-      <div class="matrix-header">
-        <h2 class="section-title">계절과 시간대의 기록 (4×4)</h2>
-        <span class="matrix-hint">각 칸을 터치해 사진을 감상해 보세요</span>
-      </div>
-
-      <div class="matrix-table-wrap">
-        <div id="photo-matrix" class="matrix-grid">
-          <!-- JS 동적 렌더링 -->
+    <!-- 명소 상세 화면: 기존 정보, 지도, 지점, 계절별 사진, 현장 등록 유지 -->
+    <section id="detail-screen" class="screen detail-screen" aria-label="명소 상세" hidden>
+      <header class="detail-topbar">
+        <button id="btn-detail-back" class="back-button" type="button" aria-label="명소 목록으로 돌아가기">‹</button>
+        <h1 id="detail-page-title" class="detail-page-title"></h1>
+        <span class="detail-topbar-spacer" aria-hidden="true"></span>
+      </header>
+      <div id="app-status-notice" class="app-status-notice" role="status" aria-live="polite" hidden></div>
+      <section id="spot-summary-card" class="spot-summary-card" aria-live="polite"></section>
+      <section class="spot-map-section" aria-label="촬영 지점 지도">
+        <div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div>
+      </section>
+      <nav id="point-tabs-section" class="point-tabs-section" aria-label="촬영 지점 선택" hidden>
+        <div id="point-tabs" class="spots-tab-scroll point-tab-scroll"></div>
+      </nav>
+      <main class="matrix-section">
+        <div class="matrix-header">
+          <h2 class="section-title">계절별 사진</h2>
+          <span class="matrix-hint">계절 더미를 눌러 사진을 넘겨 보세요</span>
         </div>
-      </div>
-    </main>
-
-    <!-- 하단 고정 플로팅 액션 바 (현장 거리 피드백 안내) -->
-    <footer class="floating-bottom-bar">
-      <div class="action-btn-wrap">
-        <button id="btn-open-upload" class="btn-upload-action state-unknown" type="button">
-          <span class="btn-icon">📷</span>
-          <span id="btn-upload-label" class="btn-text">내 위치 확인 후 현장 등록하기</span>
-        </button>
-        <p id="upload-distance-notice" class="upload-distance-notice" role="status" aria-live="polite" hidden></p>
-      </div>
-    </footer>
+        <div class="season-gallery-filters">
+          <div class="season-filter-group" role="group" aria-label="시간대 필터">
+            <button class="season-filter-button is-active" type="button" data-gallery-time="all" aria-pressed="true">전체</button>
+            <button class="season-filter-button" type="button" data-gallery-time="sunrise" aria-pressed="false">일출</button>
+            <button class="season-filter-button" type="button" data-gallery-time="day" aria-pressed="false">낮</button>
+            <button class="season-filter-button" type="button" data-gallery-time="sunset" aria-pressed="false">일몰</button>
+            <button class="season-filter-button" type="button" data-gallery-time="night" aria-pressed="false">밤</button>
+          </div>
+          <label class="season-weather-control" for="gallery-weather-filter">
+            <span>날씨</span>
+            <select id="gallery-weather-filter" aria-label="날씨 필터">
+              <option value="all">전체</option>
+              <option value="clear">맑음</option>
+              <option value="cloudy">흐림</option>
+              <option value="rain">비</option>
+              <option value="snow">눈</option>
+              <option value="fog">안개</option>
+              <option value="other">기타</option>
+            </select>
+          </label>
+        </div>
+        <div class="matrix-table-wrap"><div id="photo-matrix" class="matrix-grid" aria-live="polite"></div></div>
+      </main>
+      <footer class="floating-bottom-bar">
+        <div class="action-btn-wrap">
+          <button id="btn-open-upload" class="btn-upload-action state-unknown" type="button">
+            <span class="btn-icon">📷</span>
+            <span id="btn-upload-label" class="btn-text">내 위치 확인 후 현장 등록하기</span>
+          </button>
+          <p id="upload-distance-notice" class="upload-distance-notice" role="status" aria-live="polite" hidden></p>
+        </div>
+      </footer>
+    </section>
 
     <!-- 사진 크게보기 모달 -->
     <div id="photo-detail-modal" class="modal-overlay photo-viewer-modal" role="dialog" aria-modal="true">
@@ -106,9 +126,7 @@
           <h3 id="viewer-title" class="sheet-title">사진 보기</h3>
           <button id="btn-close-detail" class="btn-close-modal" type="button" aria-label="닫기">×</button>
         </div>
-        <div id="viewer-image-wrap" class="viewer-image-wrap">
-          <img id="detail-photo-img" src="" alt="현장 사진">
-        </div>
+        <div id="viewer-image-wrap" class="viewer-image-wrap"><img id="detail-photo-img" src="" alt="현장 사진"></div>
         <div id="viewer-navigation" class="viewer-navigation" aria-label="사진 탐색" hidden>
           <button id="btn-previous-photo" class="viewer-nav-button" type="button" aria-label="이전 사진">‹</button>
           <span id="detail-photo-count" class="viewer-photo-count" aria-live="polite"></span>
@@ -122,7 +140,7 @@
       </div>
     </div>
 
-    <!-- 2중 검증 사진 업로드 모달 시트 -->
+    <!-- 기존 업로드·위치 검증 모달 -->
     <div id="upload-modal" class="modal-overlay" role="dialog" aria-modal="true">
       <div class="modal-sheet">
         <div class="sheet-header">
@@ -132,23 +150,12 @@
           </div>
           <button id="btn-close-upload" class="btn-close-modal" type="button" aria-label="닫기">×</button>
         </div>
-
         <form id="upload-form" class="upload-form">
-          <!-- 계절은 사진 촬영 시각으로 자동 결정 -->
           <div class="form-group">
             <label class="form-label" for="season-display">계절 (촬영 시각 기준)</label>
-            <input
-              type="text"
-              id="season-display"
-              value="오늘 날짜 기준"
-              readonly
-              aria-readonly="true"
-              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-secondary);"
-            >
+            <input type="text" id="season-display" value="오늘 날짜 기준" readonly aria-readonly="true" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-secondary);">
             <input type="hidden" id="season-input" name="season" value="spring">
           </div>
-
-          <!-- 촬영 시간대 선택 -->
           <div class="form-group">
             <label class="form-label">시간대</label>
             <div class="chips-selector" id="time-of-day-chips">
@@ -158,8 +165,6 @@
               <label class="chip-option"><input type="radio" name="time_of_day" value="night" hidden>밤</label>
             </div>
           </div>
-
-          <!-- 날씨 선택 -->
           <div class="form-group">
             <label class="form-label">날씨</label>
             <div class="chips-selector" id="weather-chips">
@@ -173,79 +178,32 @@
           </div>
           <div class="form-group" id="weather-note-group" hidden>
             <label class="form-label" for="weather-note-input">날씨 메모 (10자 이하)</label>
-            <input
-              type="text"
-              id="weather-note-input"
-              name="weather_note"
-              maxlength="10"
-              placeholder="날씨를 적어 주세요"
-              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
-            >
+            <input type="text" id="weather-note-input" name="weather_note" maxlength="10" placeholder="날씨를 적어 주세요" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);">
           </div>
-
-          <!-- 닉네임 입력 -->
           <div class="form-group">
             <label class="form-label" for="nickname-input">닉네임 (1~20자)</label>
-            <input
-              type="text"
-              id="nickname-input"
-              name="nickname"
-              minlength="1"
-              maxlength="20"
-              required
-              autocomplete="nickname"
-              placeholder="닉네임을 입력해 주세요"
-              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
-            >
+            <input type="text" id="nickname-input" name="nickname" minlength="1" maxlength="20" required autocomplete="nickname" placeholder="닉네임을 입력해 주세요" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);">
           </div>
-
-          <!-- 사진 파일 선택 박스 -->
           <div class="form-group">
             <label class="form-label">사진 파일 (JPEG/PNG)</label>
             <label for="photo-file-input" class="file-upload-box">
-              <span class="upload-icon">📷</span>
-              <span class="upload-main-text" id="file-name-preview">사진 선택하기</span>
+              <span class="upload-icon">📷</span><span class="upload-main-text" id="file-name-preview">사진 선택하기</span>
               <span class="upload-sub-text">현장 반경 500m 이내 촬영 원본 (위치 정보 필수)</span>
             </label>
-            <input
-              type="file"
-              id="photo-file-input"
-              accept="image/jpeg,image/png,image/jpg"
-              style="display: none;"
-              required
-            >
+            <input type="file" id="photo-file-input" accept="image/jpeg,image/png,image/jpg" style="display: none;" required>
           </div>
-
-          <!-- 사진 메모 입력 -->
           <div class="form-group">
             <label class="form-label" for="photo-memo-input">사진 메모 (선택)</label>
-            <input
-              type="text"
-              id="photo-memo-input"
-              name="memo"
-              maxlength="30"
-              placeholder="예: 해질녘 토성 앞 노을빛"
-              style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);"
-            >
+            <input type="text" id="photo-memo-input" name="memo" maxlength="30" placeholder="예: 해질녘 토성 앞 노을빛" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);">
           </div>
-
-          <!-- 2중 위치 검증 피드백 및 차단 사유 카드 (최소 11px 보장) -->
           <div id="validation-feedback-card" class="validation-feedback-box">
-            <div id="feedback-title" class="feedback-title"></div>
-            <div id="feedback-message" class="feedback-message"></div>
-            <div id="feedback-hint" class="feedback-hint"></div>
+            <div id="feedback-title" class="feedback-title"></div><div id="feedback-message" class="feedback-message"></div><div id="feedback-hint" class="feedback-hint"></div>
           </div>
-
-          <!-- 등록 버튼 -->
-          <button type="submit" id="btn-submit-photo" class="btn-submit-upload" disabled>
-            위치 검증 후 등록하기
-          </button>
+          <button type="submit" id="btn-submit-photo" class="btn-submit-upload" disabled>위치 검증 후 등록하기</button>
         </form>
       </div>
     </div>
   </div>
-
-  <!-- 일반 스크립트는 의존 순서대로 로드합니다. -->
   <script src="geo-calculator.js"></script>
   <script src="exif-gps-reader.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
@@ -257,5 +215,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="app.js"></script>
   <script src="map-feature.js"></script>
+  <script src="screens.js"></script>
 </body>
 </html>
