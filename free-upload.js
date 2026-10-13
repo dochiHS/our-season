@@ -119,7 +119,7 @@
       return;
     }
 
-    showFeedback('status-checking', '위치와 사진 정보를 확인하고 있습니다.', '사진의 촬영 위치와 현재 위치를 확인합니다.');
+    showFeedback('status-checking', '사진 정보를 확인하고 있습니다.', '사진에 담긴 촬영 위치와 시각을 확인합니다.');
     try {
       const result = await global.FreePlaces.validateFreeUpload(file);
       if (requestId !== validationRequestId || fields.photo.files[0] !== file) return;
@@ -130,7 +130,7 @@
         const city = global.FreePlaces.CITIES[result.city];
         fields.cityNotice.textContent = `${city ? city.name : '해당 도시'}에서 찍은 사진이에요`;
         fields.cityNotice.hidden = false;
-        showFeedback('status-passed', '사진 확인을 통과했습니다.', '현재 위치와 사진 위치가 가까우며 지원 도시 안에서 촬영됐습니다.');
+        showFeedback('status-passed', '사진 확인을 통과했습니다.', '지원 도시 안에서 찍은 사진이에요.');
       } else {
         const error = formatValidationErrors(result);
         showFeedback('status-error', error.title, error.message);
@@ -186,12 +186,12 @@
     }
 
     setBusy(true);
-    showFeedback('status-checking', '위치와 사진 정보를 다시 확인하고 있습니다.', '현재 위치를 새로 받아 사진 위치를 검증합니다.');
+    showFeedback('status-checking', '사진 정보를 다시 확인하고 있습니다.', '사진에 담긴 촬영 위치와 시각을 다시 확인합니다.');
     try {
       const client = getSupabaseClient();
       if (!client) throw new Error('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.');
 
-      // 등록 직전에도 현재 위치를 새로 조회해 검사합니다. 좌표는 결과나 저장 데이터에 보관하지 않습니다.
+      // 등록 직전에 사진 정보를 한 번 더 검사합니다. 좌표는 결과나 저장 데이터에 보관하지 않습니다.
       const validation = await global.FreePlaces.validateFreeUpload(file);
       if (!validation.ok) {
         const error = formatValidationErrors(validation);
@@ -207,7 +207,7 @@
       updateSeason(selectedTakenAt);
       fields.cityNotice.textContent = `${global.FreePlaces.CITIES[city].name}에서 찍은 사진이에요`;
       fields.cityNotice.hidden = false;
-      showFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
+      showFeedback('status-checking', '사진 확인을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
 
       const season = getSeason(selectedTakenAt);
       const compressed = await global.ImageCompressor.compressImage(file);
@@ -270,7 +270,7 @@
             <label class="form-label" for="free-photo-file">사진 파일 (JPEG/PNG)</label>
             <label for="free-photo-file" class="file-upload-box">
               <span class="upload-icon">📷</span><span class="upload-main-text" id="free-file-name">사진 선택하기</span>
-              <span class="upload-sub-text">청주·천안·세종·김포·대전 안에서 찍은 원본 사진 (위치 정보 필수)</span>
+              <span class="upload-sub-text">청주·천안·세종·김포·대전에서 찍은 원본 사진 (위치 정보 필수)</span>
             </label>
             <input type="file" id="free-photo-file" accept="image/jpeg,image/png,image/jpg" style="display:none;">
           </div>

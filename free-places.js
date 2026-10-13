@@ -15,8 +15,6 @@
     daejeon: Object.freeze({ name: '대전', latitude: 36.3504, longitude: 127.3845, radiusMeters: 15000 })
   });
 
-  const PHOTO_CURRENT_RADIUS_METERS = 200;
-  const MAX_GPS_ACCURACY_ALLOWANCE_METERS = 100;
 
   function detectCity(latitude, longitude) {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
@@ -42,28 +40,6 @@
     return nearestCity && nearestDistance <= nearestCity.radiusMeters ? nearestCode : null;
   }
 
-  function createCurrentLocationError(error) {
-    return {
-      code: 'USER_LOCATION_ERROR',
-      type: 'user_location_error',
-      title: '현재 위치를 받을 수 없습니다',
-      message: error && error.message
-        ? error.message
-        : '현재 위치를 확인할 수 없습니다. 위치 권한을 확인한 뒤 다시 시도해 주세요.'
-    };
-  }
-
-  function createPhotoTooFarError(distanceMeters) {
-    const distanceText = global.UploadValidator.formatDistance(distanceMeters);
-    return {
-      code: 'PHOTO_TOO_FAR_FROM_CURRENT_LOCATION',
-      type: 'photo_other_place',
-      title: '지금 있는 곳과 사진 찍은 곳이 멀리 떨어져 있습니다',
-      message: '지금 있는 곳과 사진 찍은 곳이 ' + distanceText +
-        ' 떨어져 있어요. GPS 오차 여유(최대 100m)를 반영해 200m 이내에서 찍은 사진만 등록할 수 있습니다.'
-    };
-  }
-
   function createOutsideCityError() {
     return {
       code: 'PHOTO_OUTSIDE_SUPPORTED_CITIES',
@@ -74,16 +50,9 @@
   }
 
   async function validateFreeUpload(file) {
+    // 우리 동네 기록은 현재 위치를 묻지 않습니다. 사진 EXIF의 촬영 위치로 도시만 판정하며,
+    // 좌표는 결과에 담지도 저장하지도 않습니다.
     const errorItems = [];
-    let currentPosition;
-
-    try {
-      // 기존 업로드 검사와 같이 매번 새 위치를 요청하며 캐시를 사용하지 않습니다.
-      currentPosition = await global.UploadValidator.getCurrentUserPosition({ maximumAge: 0 });
-    } catch (error) {
-      errorItems.push(createCurrentLocationError(error));
-      return { ok: false, city: null, takenAt: null, errorItems: errorItems };
-    }
 
     let metadata;
     try {
@@ -105,19 +74,6 @@
 
     const takenAt = metadata.takenAt || null;
     const city = detectCity(metadata.latitude, metadata.longitude);
-    const accuracy = Number.isFinite(currentPosition.accuracy) && currentPosition.accuracy > 0
-      ? Math.min(currentPosition.accuracy, MAX_GPS_ACCURACY_ALLOWANCE_METERS)
-      : 0;
-    const distanceMeters = global.GeoCalculator.getDistanceInMeters(
-      currentPosition.latitude,
-      currentPosition.longitude,
-      metadata.latitude,
-      metadata.longitude
-    );
-
-    if (distanceMeters > PHOTO_CURRENT_RADIUS_METERS + accuracy) {
-      errorItems.push(createPhotoTooFarError(distanceMeters));
-    }
     if (!city) {
       errorItems.push(createOutsideCityError());
     }
