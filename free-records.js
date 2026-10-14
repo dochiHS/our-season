@@ -6,11 +6,19 @@
 (function (global) {
   'use strict';
 
-  const CITIES = global.FreePlaces && global.FreePlaces.CITIES ? global.FreePlaces.CITIES : {};
+  const PLACES = global.FreePlaces;
+  const CITIES = PLACES && PLACES.CITIES ? PLACES.CITIES : {};
+  const REGION_ORDER = Object.keys(CITIES);
+  // 시·군 칩 순서: 시·도 순서, 그 안에서는 가나다 순(FreePlaces.UNITS 순서)
+  const UNIT_ORDER = (PLACES && PLACES.UNITS ? PLACES.UNITS : []).reduce((order, unit, index) => {
+    order[unit.key] = index;
+    return order;
+  }, {});
   const SEASONS = { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' };
   const WEATHER = { clear: '맑음', cloudy: '흐림', rain: '비', snow: '눈', fog: '안개', other: '기타' };
   const app = document.getElementById('app');
-  let screen = null, list = null, city = 'all', season = 'all', records = null, loadPromise = null, loadFailed = false;
+  // place: 'all' 또는 '시·도코드|시·군이름' (시·군 정보가 없는 예전 기록은 '시·도코드|')
+  let screen = null, list = null, place = 'all', season = 'all', records = null, loadPromise = null, loadFailed = false;
 
   function createScreen() {
     if (!app) return;
@@ -19,7 +27,7 @@
     screen.className = 'screen free-records-screen';
     screen.setAttribute('aria-label', '우리 동네 기록');
     screen.hidden = true;
-    screen.innerHTML = '<header class="screen-topbar free-records-topbar"><button class="back-button free-records-back" type="button" aria-label="첫 화면으로 돌아가기">‹</button><h1 class="free-records-title">우리 동네 기록</h1><span class="free-records-topbar-spacer" aria-hidden="true"></span></header><nav class="free-records-filters" aria-label="기록 필터"><div class="free-records-filter-row free-records-city-filter" role="group" aria-label="도시 선택"></div><div class="free-records-filter-row free-records-season-filter" role="group" aria-label="계절 선택"></div></nav><main class="free-record-list" aria-live="polite"></main><div class="free-records-bottom-bar"><button class="btn-submit-upload free-records-upload-button" type="button">📷 우리 동네 기록 올리기</button></div>';
+    screen.innerHTML = '<header class="screen-topbar free-records-topbar"><button class="back-button free-records-back" type="button" aria-label="첫 화면으로 돌아가기">‹</button><h1 class="free-records-title">우리 동네 기록</h1><span class="free-records-topbar-spacer" aria-hidden="true"></span></header><nav class="free-records-filters" aria-label="기록 필터"><div class="free-records-filter-row free-records-city-filter" role="group" aria-label="시·군 선택"></div><div class="free-records-filter-row free-records-season-filter" role="group" aria-label="계절 선택"></div></nav><main class="free-record-list" aria-live="polite"></main><div class="free-records-bottom-bar"><button class="btn-submit-upload free-records-upload-button" type="button">📷 우리 동네 기록 올리기</button></div>';
     app.appendChild(screen);
     list = screen.querySelector('.free-record-list');
     screen.querySelector('.free-records-back').addEventListener('click', () => { global.location.hash = '#/'; });
@@ -39,10 +47,10 @@
     const client = getSupabaseClient();
     if (!client) throw new Error('Supabase unavailable');
     const { data, error } = await client.from('season_photos')
-      .select('city, place_name, season, time_of_day, weather, weather_note, memo, nickname, photo_path, taken_at, created_at')
+      .select('city, district, place_name, season, time_of_day, weather, weather_note, memo, nickname, photo_path, taken_at, created_at')
       .eq('status', 'approved').eq('kind', 'free').order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []).map(row => {
+    return (data || []).filter(row => row && row.city).map(row => {
       const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
       return { ...row, photoUrl: publicData && publicData.publicUrl ? publicData.publicUrl : '' };
     });
@@ -55,7 +63,7 @@
     button.textContent = label;
     button.setAttribute('aria-pressed', value === activeValue ? 'true' : 'false');
     button.addEventListener('click', () => {
-      if (type === 'city') city = value;
+      if (type === 'place') place = value;
       else season = value;
       updateHash();
     });
@@ -68,18 +76,49 @@
     const seasonFilter = screen.querySelector('.free-records-season-filter');
     cityFilter.replaceChildren();
     seasonFilter.replaceChildren();
-    appendChip(cityFilter, '전체', 'all', city, 'city');
-    // 전국 17개 시·도 중 실제로 기록이 있는 지역(과 지금 고른 지역)만 칩으로 보여 준다.
-    Object.keys(CITIES)
-      .filter(code => code === city || (Array.isArray(records) && records.some(record => record.city === code)))
-      .forEach(code => appendChip(cityFilter, CITIES[code].name, code, city, 'city'));
+    appendChip(cityFilter, '전체', 'all', place, 'place');
+    // 실제로 기록이 있는 시·군(과 지금 고른 시·군)만 칩으로 보여 준다.
+    const keys = new Set(Array.isArray(records) ? records.map(placeKey) : []);
+    if (place !== 'all') keys.add(place);
+    Array.from(keys).sort(comparePlaceKeys)
+      .forEach(key => appendChip(cityFilter, labelOfKey(key), key, place, 'place'));
     appendChip(seasonFilter, '전체', 'all', season, 'season');
     Object.entries(SEASONS).forEach(([code, name]) => appendChip(seasonFilter, name, code, season, 'season'));
   }
 
+  function placeKey(record) {
+    return `${record.city || ''}|${record.district || ''}`;
+  }
+
+  function splitKey(key) {
+    const parts = String(key).split('|');
+    return { city: parts[0] || '', district: parts[1] || '' };
+  }
+
+  function labelOfKey(key) {
+    const parts = splitKey(key);
+    return PLACES ? PLACES.placeLabel(parts.city, parts.district) : parts.district || parts.city;
+  }
+
+  function comparePlaceKeys(a, b) {
+    const pa = splitKey(a), pb = splitKey(b);
+    const ra = REGION_ORDER.indexOf(pa.city), rb = REGION_ORDER.indexOf(pb.city);
+    if (ra !== rb) return ra - rb;
+    // 시·군 정보가 없는 예전 기록(시·도만 있음)은 그 시·도의 맨 뒤에 둔다.
+    const ua = Object.prototype.hasOwnProperty.call(UNIT_ORDER, a) ? UNIT_ORDER[a] : Number.MAX_SAFE_INTEGER;
+    const ub = Object.prototype.hasOwnProperty.call(UNIT_ORDER, b) ? UNIT_ORDER[b] : Number.MAX_SAFE_INTEGER;
+    return ua - ub;
+  }
+
+  function isKnownKey(key) {
+    const parts = splitKey(key);
+    if (!Object.prototype.hasOwnProperty.call(CITIES, parts.city)) return false;
+    return !parts.district || Boolean(PLACES && PLACES.isValidPlace(parts.city, parts.district));
+  }
+
   function updateHash() {
     const params = new URLSearchParams();
-    if (city !== 'all') params.set('city', city);
+    if (place !== 'all') params.set('place', place);
     if (season !== 'all') params.set('season', season);
     const query = params.toString();
     global.location.hash = `#/local${query ? `?${query}` : ''}`;
@@ -119,7 +158,7 @@
       list.appendChild(notice);
       return;
     }
-    const filtered = records.filter(record => (city === 'all' || record.city === city) && (season === 'all' || record.season === season));
+    const filtered = records.filter(record => (place === 'all' || placeKey(record) === place) && (season === 'all' || record.season === season));
     if (!filtered.length) {
       const empty = document.createElement('p');
       empty.className = 'free-records-message';
@@ -141,8 +180,7 @@
         image.style.cursor = 'zoom-in';
         image.addEventListener('click', () => {
           if (!global.FreePhotoViewer || typeof global.FreePhotoViewer.open !== 'function') return;
-          const cityName = (CITIES[record.city] && CITIES[record.city].name) || record.city || '';
-          global.FreePhotoViewer.open(record.photoUrl, `${record.place_name || ''} · ${cityName}`);
+          global.FreePhotoViewer.open(record.photoUrl, `${record.place_name || ''} · ${labelOfKey(placeKey(record))}`);
         });
         card.appendChild(image);
       }
@@ -153,7 +191,7 @@
       place.textContent = record.place_name || '';
       const cityName = document.createElement('p');
       cityName.className = 'free-record-city';
-      cityName.textContent = (CITIES[record.city] && CITIES[record.city].name) || record.city || '';
+      cityName.textContent = PLACES ? PLACES.placeFullName(record.city, record.district) : (record.district || record.city || '');
       const tags = document.createElement('div');
       tags.className = 'free-record-tags';
       const seasonNames = global.SpotData && global.SpotData.SEASONS_KO ? global.SpotData.SEASONS_KO : SEASONS;
@@ -181,9 +219,9 @@
   function render(params) {
     if (!screen) return;
     const query = params instanceof URLSearchParams ? params : new URLSearchParams();
-    const requestedCity = query.get('city') || 'all';
+    const requestedPlace = query.get('place') || 'all';
     const requestedSeason = query.get('season') || 'all';
-    city = requestedCity === 'all' || Object.prototype.hasOwnProperty.call(CITIES, requestedCity) ? requestedCity : 'all';
+    place = requestedPlace === 'all' || isKnownKey(requestedPlace) ? requestedPlace : 'all';
     season = requestedSeason === 'all' || Object.prototype.hasOwnProperty.call(SEASONS, requestedSeason) ? requestedSeason : 'all';
     renderFiltersAndRecords();
     if (!loadPromise) {

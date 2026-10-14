@@ -32,7 +32,7 @@
   });
 
   const SELECT_COLUMNS = [
-    'id', 'kind', 'spot_id', 'point_id', 'city', 'place_name', 'season',
+    'id', 'kind', 'spot_id', 'point_id', 'city', 'district', 'place_name', 'season',
     'time_of_day', 'weather', 'weather_note', 'memo', 'nickname',
     'photo_path', 'taken_at', 'created_at'
   ].join(',');
@@ -98,7 +98,9 @@
 
   function getKindLabel(row) {
     if (row.kind === 'free') {
-      const cityName = CITY_NAMES[row.city] || row.city || '도시 정보 없음';
+      const regionName = CITY_NAMES[row.city] || row.city || '';
+      const district = row.district && row.district !== regionName ? row.district : '';
+      const cityName = [regionName, district].filter(Boolean).join(' ') || '지역 정보 없음';
       const placeName = row.place_name || '장소 이름 없음';
       return `동네 기록 · ${cityName} · ${placeName}`;
     }

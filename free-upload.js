@@ -86,21 +86,34 @@
     fields.submit.disabled = isSubmitting || !hasFile || !currentValidation || !currentValidation.ok || !confirmed;
   }
 
+  // 시·군 선택 상자: 시·도별로 묶고(optgroup), 값은 '시·도코드|시·군이름'
   function fillRegionOptions() {
     if (!fields.region || fields.region.options.length) return;
     const regions = global.FreePlaces.REGIONS;
-    Object.keys(regions).forEach(code => {
+    const groups = {};
+    global.FreePlaces.UNITS.forEach(unit => {
+      if (!groups[unit.city]) {
+        groups[unit.city] = document.createElement('optgroup');
+        groups[unit.city].label = regions[unit.city].name;
+        fields.region.appendChild(groups[unit.city]);
+      }
       const option = document.createElement('option');
-      option.value = code;
-      option.textContent = regions[code].name;
-      fields.region.appendChild(option);
+      option.value = unit.key;
+      option.textContent = global.FreePlaces.placeFullName(unit.city, unit.district);
+      groups[unit.city].appendChild(option);
     });
   }
 
-  function showRegion(code) {
+  function showRegion(city, district) {
     fillRegionOptions();
-    if (global.FreePlaces.isRegionCode(code)) fields.region.value = code;
+    if (global.FreePlaces.isValidPlace(city, district)) fields.region.value = `${city}|${district}`;
     fields.regionGroup.hidden = false;
+  }
+
+  function readSelectedPlace() {
+    const parts = String(fields.region.value || '').split('|');
+    const place = { city: parts[0], district: parts[1] };
+    return global.FreePlaces.isValidPlace(place.city, place.district) ? place : null;
   }
 
   function hideRegion() {
@@ -146,8 +159,8 @@
       selectedTakenAt = result.takenAt || null;
       updateSeason(selectedTakenAt);
       if (result.ok) {
-        showRegion(result.city);
-        showFeedback('status-passed', '사진 확인을 통과했습니다.', '국내에서 찍은 사진이에요. 아래 지역이 맞는지 확인해 주세요.');
+        showRegion(result.city, result.district);
+        showFeedback('status-passed', '사진 확인을 통과했습니다.', '국내에서 찍은 사진이에요. 아래 시·군이 맞는지 확인해 주세요.');
       } else {
         const error = formatValidationErrors(result);
         showFeedback('status-error', error.title, error.message);
@@ -219,8 +232,10 @@
       }
 
       // 지역은 사진 위치로 추천한 값을 사용자가 확인·수정한 선택 상자 값을 쓴다.
-      const city = fields.region.value;
-      if (!global.FreePlaces.isRegionCode(city)) throw new Error('지역을 골라 주세요.');
+      const place = readSelectedPlace();
+      if (!place) throw new Error('지역을 골라 주세요.');
+      const city = place.city;
+      const district = place.district;
       selectedTakenAt = validation.takenAt || null;
       updateSeason(selectedTakenAt);
       showFeedback('status-checking', '사진 확인을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
@@ -236,6 +251,7 @@
       const { error: insertError } = await client.from('season_photos').insert({
         kind: 'free',
         city,
+        district,
         place_name: values.placeName,
         spot_id: null,
         point_id: null,
@@ -291,7 +307,7 @@
             <input type="file" id="free-photo-file" accept="image/jpeg,image/png,image/jpg" style="display:none;">
           </div>
           <div class="form-group" id="free-region-group" hidden>
-            <label class="form-label" for="free-region">지역 (사진 위치로 자동 선택 · 다르면 바꿔 주세요)</label>
+            <label class="form-label" for="free-region">시·군 (사진 위치로 자동 선택 · 다르면 바꿔 주세요)</label>
             <select id="free-region" style="width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--bg-border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-sans);background:var(--bg-surface);color:var(--text-primary);"></select>
           </div>
           <div class="form-group">
@@ -342,6 +358,7 @@
             <p id="free-face-warning" class="face-confirmation-warning" role="status">얼굴이 보이는 사진은 올릴 수 없어요</p>
           </div>
           <button type="submit" id="free-submit" class="btn-submit-upload" disabled>등록하기</button>
+          <p class="free-upload-credit" style="margin:12px 0 0;color:var(--text-muted);font-size:10px;line-height:1.5;text-align:center;">시·군 판정: 통계청 SGIS 행정구역 경계(2018) · 공공누리 제1유형</p>
         </form>
       </div>`;
     document.body.appendChild(modal);

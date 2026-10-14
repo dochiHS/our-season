@@ -92,3 +92,30 @@
 
 /* 명소 요약 카드: 일출·일몰 표시를 제목 묶음의 세로 중앙에 */
 .summary-header { align-items: center; }
+
+/* 아이폰 사파리: 아래에서 올라오는 창이 주소창 밑으로 들어가지 않게 높이를 보이는 화면 기준으로 맞추고,
+   내려 읽는 중에도 제목줄과 닫기(×) 버튼이 위에 붙어 있게 한다. */
+.modal-sheet {
+  max-height: 90vh;
+  max-height: calc(100dvh - 56px);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 16px));
+}
+.modal-sheet > .sheet-header {
+  position: sticky;
+  top: -20px;
+  z-index: 5;
+  margin-top: -20px;
+  padding-top: 20px;
+  background: var(--bg-surface);
+}
+.photo-viewer-modal .modal-sheet > .sheet-header {
+  top: -16px;
+  margin-top: -16px;
+  padding-top: 16px;
+}
+.modal-sheet .btn-close-modal {
+  min-width: 44px;
+  min-height: 44px;
+}
