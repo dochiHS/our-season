@@ -2,11 +2,10 @@
   'use strict';
 
   const CITY_NAMES = Object.freeze({
-    cheongju: '청주',
-    cheonan: '천안',
-    sejong: '세종',
-    gimpo: '김포',
-    daejeon: '대전'
+    seoul: '서울', busan: '부산', daegu: '대구', incheon: '인천', gwangju: '광주',
+    daejeon: '대전', ulsan: '울산', sejong: '세종', gyeonggi: '경기', gangwon: '강원',
+    chungbuk: '충북', chungnam: '충남', jeonbuk: '전북', jeonnam: '전남',
+    gyeongbuk: '경북', gyeongnam: '경남', jeju: '제주'
   });
 
   const SEASON_NAMES = Object.freeze({

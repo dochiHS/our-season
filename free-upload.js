@@ -86,14 +86,34 @@
     fields.submit.disabled = isSubmitting || !hasFile || !currentValidation || !currentValidation.ok || !confirmed;
   }
 
+  function fillRegionOptions() {
+    if (!fields.region || fields.region.options.length) return;
+    const regions = global.FreePlaces.REGIONS;
+    Object.keys(regions).forEach(code => {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = regions[code].name;
+      fields.region.appendChild(option);
+    });
+  }
+
+  function showRegion(code) {
+    fillRegionOptions();
+    if (global.FreePlaces.isRegionCode(code)) fields.region.value = code;
+    fields.regionGroup.hidden = false;
+  }
+
+  function hideRegion() {
+    fields.regionGroup.hidden = true;
+  }
+
   function resetForm() {
     validationRequestId += 1;
     currentValidation = null;
     selectedTakenAt = null;
     form.reset();
     fields.fileName.textContent = '사진 선택하기';
-    fields.cityNotice.hidden = true;
-    fields.cityNotice.textContent = '';
+    hideRegion();
     fields.face.checked = false;
     fields.feedback.className = 'validation-feedback-box';
     fields.feedbackTitle.textContent = '';
@@ -110,8 +130,7 @@
     selectedTakenAt = null;
     fields.face.checked = false;
     fields.fileName.textContent = file ? file.name : '사진 선택하기';
-    fields.cityNotice.hidden = true;
-    fields.cityNotice.textContent = '';
+    hideRegion();
     updateSeason(null);
     updateSubmitAvailability();
     if (!file) {
@@ -127,10 +146,8 @@
       selectedTakenAt = result.takenAt || null;
       updateSeason(selectedTakenAt);
       if (result.ok) {
-        const city = global.FreePlaces.CITIES[result.city];
-        fields.cityNotice.textContent = `${city ? city.name : '해당 도시'}에서 찍은 사진이에요`;
-        fields.cityNotice.hidden = false;
-        showFeedback('status-passed', '사진 확인을 통과했습니다.', '지원 도시 안에서 찍은 사진이에요.');
+        showRegion(result.city);
+        showFeedback('status-passed', '사진 확인을 통과했습니다.', '국내에서 찍은 사진이에요. 아래 지역이 맞는지 확인해 주세요.');
       } else {
         const error = formatValidationErrors(result);
         showFeedback('status-error', error.title, error.message);
@@ -163,7 +180,7 @@
 
   function setBusy(busy) {
     isSubmitting = busy;
-    form.querySelectorAll('input, button').forEach(input => { input.disabled = busy; });
+    form.querySelectorAll('input, button, select').forEach(input => { input.disabled = busy; });
     updateSubmitAvailability();
   }
 
@@ -196,17 +213,16 @@
       if (!validation.ok) {
         const error = formatValidationErrors(validation);
         currentValidation = null;
-        fields.cityNotice.hidden = true;
+        hideRegion();
         showFeedback('status-error', error.title, error.message);
         return;
       }
 
-      const city = validation.city;
-      if (!city || !global.FreePlaces.CITIES[city]) throw new Error('사진의 도시 판정 결과를 확인할 수 없습니다.');
+      // 지역은 사진 위치로 추천한 값을 사용자가 확인·수정한 선택 상자 값을 쓴다.
+      const city = fields.region.value;
+      if (!global.FreePlaces.isRegionCode(city)) throw new Error('지역을 골라 주세요.');
       selectedTakenAt = validation.takenAt || null;
       updateSeason(selectedTakenAt);
-      fields.cityNotice.textContent = `${global.FreePlaces.CITIES[city].name}에서 찍은 사진이에요`;
-      fields.cityNotice.hidden = false;
       showFeedback('status-checking', '사진 확인을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
 
       const season = getSeason(selectedTakenAt);
@@ -270,11 +286,14 @@
             <label class="form-label" for="free-photo-file">사진 파일 (JPEG/PNG)</label>
             <label for="free-photo-file" class="file-upload-box">
               <span class="upload-icon">📷</span><span class="upload-main-text" id="free-file-name">사진 선택하기</span>
-              <span class="upload-sub-text">청주·천안·세종·김포·대전에서 찍은 원본 사진 (위치 정보 필수)</span>
+              <span class="upload-sub-text">국내에서 찍은 원본 사진 (위치 정보 필수)</span>
             </label>
             <input type="file" id="free-photo-file" accept="image/jpeg,image/png,image/jpg" style="display:none;">
           </div>
-          <div id="free-city-notice" class="upload-distance-notice" role="status" aria-live="polite" hidden></div>
+          <div class="form-group" id="free-region-group" hidden>
+            <label class="form-label" for="free-region">지역 (사진 위치로 자동 선택 · 다르면 바꿔 주세요)</label>
+            <select id="free-region" style="width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--bg-border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-sans);background:var(--bg-surface);color:var(--text-primary);"></select>
+          </div>
           <div class="form-group">
             <label class="form-label" for="free-season-display">계절 (촬영 시각 기준)</label>
             <input type="text" id="free-season-display" readonly aria-readonly="true" style="width:100%;padding:10px 12px;border:1px solid var(--bg-border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-secondary);">
@@ -330,7 +349,7 @@
     form = modal.querySelector('#free-upload-form');
     fields = {
       placeName: modal.querySelector('#free-place-name'), photo: modal.querySelector('#free-photo-file'), fileName: modal.querySelector('#free-file-name'),
-      cityNotice: modal.querySelector('#free-city-notice'), season: modal.querySelector('#free-season'), seasonDisplay: modal.querySelector('#free-season-display'),
+      regionGroup: modal.querySelector('#free-region-group'), region: modal.querySelector('#free-region'), season: modal.querySelector('#free-season'), seasonDisplay: modal.querySelector('#free-season-display'),
       weatherNoteGroup: modal.querySelector('#free-weather-note-group'), weatherNote: modal.querySelector('#free-weather-note'), nickname: modal.querySelector('#free-nickname'), memo: modal.querySelector('#free-memo'),
       feedback: modal.querySelector('#free-validation-feedback'), feedbackTitle: modal.querySelector('#free-feedback-title'), feedbackMessage: modal.querySelector('#free-feedback-message'),
       face: modal.querySelector('#free-face-confirmation'), faceWarning: modal.querySelector('#free-face-warning'), submit: modal.querySelector('#free-submit')

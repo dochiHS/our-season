@@ -69,7 +69,10 @@
     cityFilter.replaceChildren();
     seasonFilter.replaceChildren();
     appendChip(cityFilter, '전체', 'all', city, 'city');
-    Object.keys(CITIES).forEach(code => appendChip(cityFilter, CITIES[code].name, code, city, 'city'));
+    // 전국 17개 시·도 중 실제로 기록이 있는 지역(과 지금 고른 지역)만 칩으로 보여 준다.
+    Object.keys(CITIES)
+      .filter(code => code === city || (Array.isArray(records) && records.some(record => record.city === code)))
+      .forEach(code => appendChip(cityFilter, CITIES[code].name, code, city, 'city'));
     appendChip(seasonFilter, '전체', 'all', season, 'season');
     Object.entries(SEASONS).forEach(([code, name]) => appendChip(seasonFilter, name, code, season, 'season'));
   }
@@ -186,7 +189,7 @@
     if (!loadPromise) {
       loadPromise = loadRecords().then(result => { records = result; }).catch(() => { loadFailed = true; });
     }
-    loadPromise.then(renderRecords);
+    loadPromise.then(renderFiltersAndRecords);
   }
 
   createScreen();
