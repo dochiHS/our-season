@@ -53,6 +53,9 @@
 
   let client = null;
   let pendingRows = [];
+  let activeTab = 'pending';
+  let pendingTabButton = null;
+  let approvedTabButton = null;
   let authReady = false;
   const deleteConfirmTimers = new Map();
 
@@ -78,7 +81,7 @@
     loginView.hidden = true;
     adminView.hidden = false;
     clearMessage(loginMessage);
-    loadPending();
+    loadCurrentQueue();
   }
 
   function getSpotLabels(row) {
@@ -114,6 +117,46 @@
     return element;
   }
 
+  function initializeQueueTabs() {
+    const tabs = makeElement('div', 'admin-queue-tabs');
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', '사진 목록');
+
+    pendingTabButton = makeElement('button', 'admin-queue-tab', '승인 대기');
+    pendingTabButton.type = 'button';
+    pendingTabButton.setAttribute('role', 'tab');
+    pendingTabButton.addEventListener('click', () => switchQueueTab('pending'));
+
+    approvedTabButton = makeElement('button', 'admin-queue-tab', '승인됨');
+    approvedTabButton.type = 'button';
+    approvedTabButton.setAttribute('role', 'tab');
+    approvedTabButton.addEventListener('click', () => switchQueueTab('approved'));
+
+    tabs.append(pendingTabButton, approvedTabButton);
+    const toolbar = pendingCount.closest('.queue-toolbar');
+    if (toolbar && toolbar.parentNode) {
+      toolbar.parentNode.insertBefore(tabs, toolbar);
+    } else if (pendingList.parentNode) {
+      pendingList.parentNode.insertBefore(tabs, pendingList);
+    }
+    updateQueueTabs();
+  }
+
+  function updateQueueTabs() {
+    if (!pendingTabButton || !approvedTabButton) return;
+    pendingTabButton.classList.toggle('is-active', activeTab === 'pending');
+    approvedTabButton.classList.toggle('is-active', activeTab === 'approved');
+    pendingTabButton.setAttribute('aria-selected', String(activeTab === 'pending'));
+    approvedTabButton.setAttribute('aria-selected', String(activeTab === 'approved'));
+  }
+
+  function switchQueueTab(tab) {
+    if (activeTab === tab) return;
+    activeTab = tab;
+    updateQueueTabs();
+    loadCurrentQueue();
+  }
+
   function formatDate(value, includeTime) {
     if (!value) return '날짜 미상';
     const date = new Date(value);
@@ -145,11 +188,14 @@
   }
 
   function renderPending() {
-    pendingCount.textContent = `승인 대기 ${pendingRows.length}장`;
+    pendingCount.textContent = `${activeTab === 'pending' ? '승인 대기' : '승인됨'} ${pendingRows.length}장`;
     pendingList.replaceChildren();
 
     if (!pendingRows.length) {
-      pendingList.appendChild(makeElement('p', 'empty-state', '승인 대기 중인 사진이 없어요'));
+      const emptyText = activeTab === 'pending'
+        ? '승인 대기 중인 사진이 없어요'
+        : '승인된 사진이 없어요';
+      pendingList.appendChild(makeElement('p', 'empty-state', emptyText));
       return;
     }
 
@@ -199,33 +245,43 @@
     content.appendChild(makeElement('p', 'photo-byline', `${nickname} · ${formatDate(row.taken_at, false)}`));
     content.appendChild(makeElement('p', 'photo-uploaded-at', `올린 시각 · ${formatDate(row.created_at, true)}`));
 
-    const actions = makeElement('div', 'card-actions');
-    const approveButton = makeElement('button', 'button button-primary', '승인');
-    approveButton.type = 'button';
-    approveButton.addEventListener('click', () => approveRecord(row.id, approveButton, rejectButton));
+    const actions = makeElement('div', `card-actions${activeTab === 'approved' ? ' is-single-action' : ''}`);
+    let approveButton = null;
+    if (activeTab === 'pending') {
+      approveButton = makeElement('button', 'button button-primary', '승인');
+      approveButton.type = 'button';
+      approveButton.addEventListener('click', () => approveRecord(row.id, approveButton, deleteButton));
+      actions.appendChild(approveButton);
+    }
 
-    const rejectButton = makeElement('button', 'button button-danger', '거절·삭제');
-    rejectButton.type = 'button';
-    rejectButton.addEventListener('click', () => handleDeleteClick(row, rejectButton, approveButton));
+    const deleteButton = makeElement(
+      'button',
+      'button button-danger',
+      activeTab === 'pending' ? '거절·삭제' : '삭제'
+    );
+    deleteButton.type = 'button';
+    deleteButton.addEventListener('click', () => handleDeleteClick(row, deleteButton, approveButton));
 
-    actions.append(approveButton, rejectButton);
+    actions.appendChild(deleteButton);
     content.appendChild(actions);
     card.appendChild(content);
     return card;
   }
 
-  async function loadPending() {
+  async function loadCurrentQueue() {
     if (!client) return;
     refreshButton.disabled = true;
     clearMessage(adminMessage);
     pendingList.replaceChildren(makeElement('p', 'empty-state', '불러오는 중…'));
 
     try {
-      const { data, error } = await client
+      let query = client
         .from('season_photos')
         .select(SELECT_COLUMNS)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
+        .eq('status', activeTab)
+        .order('created_at', { ascending: activeTab === 'pending' });
+      if (activeTab === 'approved') query = query.limit(50);
+      const { data, error } = await query;
 
       if (error) throw error;
       resetDeleteConfirmations();
@@ -233,9 +289,10 @@
       renderPending();
     } catch (_error) {
       pendingRows = [];
-      pendingCount.textContent = '승인 대기';
+      pendingCount.textContent = activeTab === 'pending' ? '승인 대기' : '승인됨';
       pendingList.replaceChildren();
-      showMessage(adminMessage, '승인 대기 목록을 불러오지 못했어요. 다시 새로고침해 주세요.', 'error');
+      const listName = activeTab === 'pending' ? '승인 대기 목록' : '승인된 사진 목록';
+      showMessage(adminMessage, `${listName}을 불러오지 못했어요. 다시 새로고침해 주세요.`, 'error');
     } finally {
       refreshButton.disabled = false;
     }
@@ -249,9 +306,9 @@
     });
   }
 
-  async function approveRecord(id, approveButton, rejectButton) {
+  async function approveRecord(id, approveButton, deleteButton) {
     clearDeleteTimer(id);
-    setCardBusy(id, true, approveButton, rejectButton);
+    setCardBusy(id, true, approveButton, deleteButton);
     clearMessage(adminMessage);
 
     try {
@@ -267,30 +324,30 @@
       renderPending();
       showMessage(adminMessage, '승인했어요', 'success');
     } catch (_error) {
-      setCardBusy(id, false, approveButton, rejectButton);
+      setCardBusy(id, false, approveButton, deleteButton);
       showMessage(adminMessage, '승인하지 못했어요. 잠시 후 다시 시도해 주세요.', 'error');
     }
   }
 
-  function handleDeleteClick(row, rejectButton, approveButton) {
+  function handleDeleteClick(row, deleteButton, approveButton) {
     const id = row.id;
     if (deleteConfirmTimers.has(id)) {
       clearDeleteTimer(id);
-      deleteRecord(row, rejectButton, approveButton);
+      deleteRecord(row, deleteButton, approveButton);
       return;
     }
 
-    rejectButton.textContent = '한 번 더 누르면 삭제돼요';
+    deleteButton.textContent = '한 번 더 누르면 삭제돼요';
     const timer = window.setTimeout(() => {
       deleteConfirmTimers.delete(id);
-      rejectButton.textContent = '거절·삭제';
+      deleteButton.textContent = activeTab === 'pending' ? '거절·삭제' : '삭제';
     }, 3000);
     deleteConfirmTimers.set(id, timer);
   }
 
-  async function deleteRecord(row, rejectButton, approveButton) {
+  async function deleteRecord(row, deleteButton, approveButton) {
     const id = row.id;
-    setCardBusy(id, true, approveButton, rejectButton);
+    setCardBusy(id, true, approveButton, deleteButton);
     clearMessage(adminMessage);
 
     try {
@@ -316,7 +373,7 @@
       }
       showMessage(adminMessage, '기록을 삭제했어요', 'success');
     } catch (_error) {
-      setCardBusy(id, false, approveButton, rejectButton);
+      setCardBusy(id, false, approveButton, deleteButton);
       showMessage(adminMessage, '기록을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.', 'error');
     }
   }
@@ -370,9 +427,10 @@
     showMessage(loginMessage, '로그아웃했어요', 'success');
   });
 
-  refreshButton.addEventListener('click', loadPending);
+  refreshButton.addEventListener('click', loadCurrentQueue);
 
   function initialize() {
+    initializeQueueTabs();
     const config = window.SUPABASE_CONFIG;
     const supabaseApi = window.supabase;
     if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY

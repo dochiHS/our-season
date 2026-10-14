@@ -337,3 +337,29 @@ h1 {
 
 /* 승인·거절 버튼 높이와 위치 맞추기 */
 .card-actions .button { margin-top: 0; width: 100%; }
+
+.admin-queue-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-queue-tab {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-queue-tab.is-active {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #fffdf7;
+}
+
+.card-actions.is-single-action {
+  grid-template-columns: 1fr;
+}

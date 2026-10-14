@@ -133,6 +133,14 @@
         image.src = record.photoUrl;
         image.alt = record.place_name || '우리 동네 기록 사진';
         image.loading = 'lazy';
+        image.setAttribute('role', 'button');
+        image.setAttribute('aria-label', '사진 크게 보기');
+        image.style.cursor = 'zoom-in';
+        image.addEventListener('click', () => {
+          if (!global.FreePhotoViewer || typeof global.FreePhotoViewer.open !== 'function') return;
+          const cityName = (CITIES[record.city] && CITIES[record.city].name) || record.city || '';
+          global.FreePhotoViewer.open(record.photoUrl, `${record.place_name || ''} · ${cityName}`);
+        });
         card.appendChild(image);
       }
       const body = document.createElement('div');
