@@ -8,12 +8,6 @@
 
   const PLACES = global.FreePlaces;
   const CITIES = PLACES && PLACES.CITIES ? PLACES.CITIES : {};
-  const REGION_ORDER = Object.keys(CITIES);
-  // 시·군 칩 순서: 시·도 순서, 그 안에서는 가나다 순(FreePlaces.UNITS 순서)
-  const UNIT_ORDER = (PLACES && PLACES.UNITS ? PLACES.UNITS : []).reduce((order, unit, index) => {
-    order[unit.key] = index;
-    return order;
-  }, {});
   const SEASONS = { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' };
   const WEATHER = { clear: '맑음', cloudy: '흐림', rain: '비', snow: '눈', fog: '안개', other: '기타' };
   const app = document.getElementById('app');
@@ -100,14 +94,10 @@
     return PLACES ? PLACES.placeLabel(parts.city, parts.district) : parts.district || parts.city;
   }
 
+  // 시·군 칩은 화면에 보이는 이름의 가나다 순으로 정렬한다.
   function comparePlaceKeys(a, b) {
-    const pa = splitKey(a), pb = splitKey(b);
-    const ra = REGION_ORDER.indexOf(pa.city), rb = REGION_ORDER.indexOf(pb.city);
-    if (ra !== rb) return ra - rb;
-    // 시·군 정보가 없는 예전 기록(시·도만 있음)은 그 시·도의 맨 뒤에 둔다.
-    const ua = Object.prototype.hasOwnProperty.call(UNIT_ORDER, a) ? UNIT_ORDER[a] : Number.MAX_SAFE_INTEGER;
-    const ub = Object.prototype.hasOwnProperty.call(UNIT_ORDER, b) ? UNIT_ORDER[b] : Number.MAX_SAFE_INTEGER;
-    return ua - ub;
+    const byName = labelOfKey(a).localeCompare(labelOfKey(b), 'ko');
+    return byName || String(a).localeCompare(String(b));
   }
 
   function isKnownKey(key) {
