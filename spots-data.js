@@ -225,6 +225,25 @@
           grid: createEmptyGrid()
         }
       ]
+    },
+    {
+      id: 'bukmunro-ginkgo',
+      name: '북문로 하트 은행나무길',
+      description: '하트 모양으로 다듬은 은행나무가 늘어선 원도심 가로수길',
+      operatingHours: '상시 개방',
+      parking: '현장 확인 예정',
+      safetyNotice: '차도 옆 보도라 촬영 중 차량에 주의',
+      points: [
+        {
+          id: 'bukmun-main',
+          name: '청주시청 임시청사 앞',
+          lat: 36.6424,
+          lng: 127.4890,
+          radiusMeters: 300,
+          description: '임시청사 앞 하트 은행나무 가로수 구간',
+          grid: createEmptyGrid()
+        }
+      ]
     }
   ];
 
