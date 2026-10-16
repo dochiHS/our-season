@@ -210,6 +210,12 @@
   }
   function updateUploadButton() {
     const spot = getCurrentSpot(); if (!spot || !elements.btnOpenUpload || !elements.btnUploadLabel) return; elements.btnOpenUpload.classList.remove('state-ready', 'state-locked', 'state-unknown');
+    if (global.Invite && global.Invite.isActive()) {
+      elements.btnOpenUpload.classList.add('state-ready');
+      elements.btnUploadLabel.textContent = '초대 링크로 사진 등록하기';
+      setUploadDistanceNotice('초대 링크로 들어왔어요. 사진에 위치 정보가 있고 촬영 지점 반경 안에서 찍힌 사진이면 올릴 수 있어요.');
+      return;
+    }
     if (!state.userCoords) { elements.btnOpenUpload.classList.add('state-unknown'); elements.btnUploadLabel.textContent = '내 위치 확인 후 현장 등록하기'; setUploadDistanceNotice('내 위치를 확인하면 명소까지의 거리와 등록 가능 여부를 안내해 드립니다.'); return; }
     const status = getNearestPointStatus(spot), distance = status ? status.distanceMeters : null, pointName = status && status.point ? status.point.name : '가장 가까운 촬영 지점', radius = status ? status.radius : 500;
     if (status && status.withinAnyPoint) { elements.btnOpenUpload.classList.add('state-ready'); elements.btnUploadLabel.textContent = '현장 사진 등록하기'; setUploadDistanceNotice(`가장 가까운 지점(${pointName})까지 ${global.UploadValidator.formatDistance(distance)}입니다. 촬영 지점 반경 안에 있습니다.`); }
@@ -245,6 +251,13 @@
   function updateSelectedChips() { document.querySelectorAll('#upload-form input[type="radio"]').forEach(input => { const label = input.closest('.chip-option'); if (label) label.classList.toggle('selected', input.checked); }); }
   async function readSelectedPhotoTime(file) { const request = ++metadataRequestId; state.selectedTakenAt = null; updateSeasonDisplay(null); if (!file || !global.ExifGpsReader || typeof global.ExifGpsReader.extractDateTimeOriginal !== 'function') return; try { const takenAt = await global.ExifGpsReader.extractDateTimeOriginal(file); if (request !== metadataRequestId || !elements.photoFileInput || elements.photoFileInput.files[0] !== file) return; state.selectedTakenAt = takenAt || null; updateSeasonDisplay(state.selectedTakenAt); } catch (error) { if (request !== metadataRequestId) return; state.selectedTakenAt = null; updateSeasonDisplay(null); } }
   async function openUploadModal(forceLocationCheck) {
+    const invited = global.Invite && global.Invite.isActive();
+    if (invited) {
+      if (!getCurrentSpot()) return false;
+      const radiusNotice = document.querySelector('.upload-sub-text');
+      if (radiusNotice) radiusNotice.textContent = '촬영 지점 반경 안에서 찍은 원본 사진 (위치 정보 필수)';
+      resetUploadForm(); if (elements.uploadModal) elements.uploadModal.classList.add('open'); return true;
+    }
     if ((forceLocationCheck === true || !state.userCoords) && !(await requestUserLocation(true))) return false;
     const spot = getCurrentSpot(); if (!spot) return false;
     const status = getNearestPointStatus(spot); if (!status || !status.withinAnyPoint) { updateUploadButton(); return false; }
@@ -265,12 +278,16 @@
     const form = new FormData(elements.uploadForm), timeOfDay = form.get('time_of_day'), weather = form.get('weather'), memo = elements.photoMemoInput ? elements.photoMemoInput.value.trim() : ''; let weatherNote, nickname;
     try { if (!global.SpotData.TIME_OF_DAY.includes(timeOfDay)) throw new Error('시간대 항목을 선택해 주세요.'); if (!Object.prototype.hasOwnProperty.call(WEATHER_KO, weather)) throw new Error('날씨 항목을 선택해 주세요.'); weatherNote = validateWeatherNote(elements.weatherNoteInput ? elements.weatherNoteInput.value : ''); nickname = validateNickname(elements.nicknameInput ? elements.nicknameInput.value : ''); }
     catch (error) { setFeedback('status-error', '입력 내용을 확인해 주세요.', error.message); if (error.message.includes('닉네임') && elements.nicknameInput) elements.nicknameInput.focus(); else if (error.message.includes('날씨 메모') && elements.weatherNoteInput) elements.weatherNoteInput.focus(); return; }
-    isSubmitting = true; updateSubmitAvailability(); setFeedback('status-checking', '위치와 사진 정보를 확인하고 있습니다.', '원본 사진의 EXIF GPS와 현재 위치를 확인합니다.');
+    const invited = global.Invite && global.Invite.isActive();
+    isSubmitting = true; updateSubmitAvailability();
+    setFeedback('status-checking', '위치와 사진 정보를 확인하고 있습니다.', invited ? '원본 사진의 EXIF GPS 위치가 촬영 지점 반경 안인지 확인합니다.' : '원본 사진의 EXIF GPS와 현재 위치를 확인합니다.');
     try {
       const client = getSupabaseClient(); if (!client) throw new Error('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.');
-      if (!state.userCoords && !(await requestUserLocation(false))) throw new Error('현재 위치를 확인할 수 없습니다. 위치 권한을 허용한 뒤 다시 시도해 주세요.');
-      const validation = await global.UploadValidator.validateUpload(file, target);
-      if (validation.details && validation.details.userLocation) { state.userCoords = validation.details.userLocation; refreshSpots(); renderTabs(); updateUploadButton(); notifySpotStateChange(); }
+      if (!invited && !state.userCoords && !(await requestUserLocation(false))) throw new Error('현재 위치를 확인할 수 없습니다. 위치 권한을 허용한 뒤 다시 시도해 주세요.');
+      const validation = invited
+        ? await global.Invite.validatePhotoOnly(file, target)
+        : await global.UploadValidator.validateUpload(file, target);
+      if (!invited && validation.details && validation.details.userLocation) { state.userCoords = validation.details.userLocation; refreshSpots(); renderTabs(); updateUploadButton(); notifySpotStateChange(); }
       if (!validation.isValid) { const errors = validation.errorItems || [], message = errors.length === 1 ? errors[0].message : errors.map(item => `${item.title}: ${item.message}`).join('\n\n'); setFeedback('status-error', errors.length === 1 ? errors[0].title : `${errors.length}가지 확인이 필요합니다.`, message || (validation.reasons || []).join('\n')); return; }
       const capturedAt = validation.details && validation.details.photoLocation ? validation.details.photoLocation.takenAt || null : state.selectedTakenAt; state.selectedTakenAt = capturedAt; const season = getCaptureSeason(capturedAt); updateSeasonDisplay(capturedAt);
       setFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 Supabase에 저장합니다.');
@@ -284,6 +301,7 @@
   function initApp() {
     if (!global.SpotData || !global.UploadValidator || !global.ImageCompressor) { console.error('필수 스크립트를 찾을 수 없습니다. 의존 스크립트를 app.js보다 먼저 불러오세요.'); return; }
     setupBottomBarHeightObserver(); setupFaceConfirmation(); updateCoverDate(); updateSeasonDisplay(null); refreshSpots(); renderTabs(); renderSummaryCard(); renderPointTabs(); renderMatrix(); updateUploadButton(); loadApprovedPhotos();
+    global.addEventListener('inviteactivated', updateUploadButton);
     elements.galleryTimeButtons.forEach(button => button.addEventListener('click', () => {
       galleryTimeFilter = button.dataset.galleryTime || 'all';
       elements.galleryTimeButtons.forEach(item => { const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', active ? 'true' : 'false'); });
