@@ -127,6 +127,8 @@
     form.reset();
     fields.fileName.textContent = '사진 선택하기';
     hideRegion();
+    fields.approxLocation.checked = true;
+    fields.approxLocationGroup.hidden = true;
     fields.face.checked = false;
     fields.feedback.className = 'validation-feedback-box';
     fields.feedbackTitle.textContent = '';
@@ -142,6 +144,8 @@
     currentValidation = null;
     selectedTakenAt = null;
     fields.face.checked = false;
+    fields.approxLocation.checked = true;
+    fields.approxLocationGroup.hidden = true;
     fields.fileName.textContent = file ? file.name : '사진 선택하기';
     hideRegion();
     updateSeason(null);
@@ -160,6 +164,7 @@
       updateSeason(selectedTakenAt);
       if (result.ok) {
         showRegion(result.city, result.district);
+        fields.approxLocationGroup.hidden = false;
         showFeedback('status-passed', '사진 확인을 통과했습니다.', '국내에서 찍은 사진이에요. 아래 시·군이 맞는지 확인해 주세요.');
       } else {
         const error = formatValidationErrors(result);
@@ -221,12 +226,13 @@
       const client = getSupabaseClient();
       if (!client) throw new Error('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.');
 
-      // 등록 직전에 사진 정보를 한 번 더 검사합니다. 좌표는 결과나 저장 데이터에 보관하지 않습니다.
+      // 등록 직전에 다시 검증한 위치만 사용합니다. 원래 EXIF 좌표는 저장하지 않습니다.
       const validation = await global.FreePlaces.validateFreeUpload(file);
       if (!validation.ok) {
         const error = formatValidationErrors(validation);
         currentValidation = null;
         hideRegion();
+        fields.approxLocationGroup.hidden = true;
         showFeedback('status-error', error.title, error.message);
         return;
       }
@@ -236,6 +242,8 @@
       if (!place) throw new Error('지역을 골라 주세요.');
       const city = place.city;
       const district = place.district;
+      const approxLat = fields.approxLocation.checked ? validation.approxLat : null;
+      const approxLng = fields.approxLocation.checked ? validation.approxLng : null;
       selectedTakenAt = validation.takenAt || null;
       updateSeason(selectedTakenAt);
       showFeedback('status-checking', '사진 확인을 통과했습니다.', '사진을 웹용 크기로 압축하고 저장합니다.');
@@ -263,6 +271,8 @@
         nickname: values.nickname,
         photo_path: photoPath,
         taken_at: selectedTakenAt || new Date().toISOString(),
+        approx_lat: approxLat,
+        approx_lng: approxLng,
         status: 'pending'
       });
       if (insertError) throw insertError;
@@ -309,6 +319,10 @@
           <div class="form-group" id="free-region-group" hidden>
             <label class="form-label" for="free-region">시·군 (사진 위치로 자동 선택 · 다르면 바꿔 주세요)</label>
             <select id="free-region" style="width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--bg-border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font-sans);background:var(--bg-surface);color:var(--text-primary);"></select>
+          </div>
+          <div class="form-group free-approx-location-group" id="free-approx-location-group" hidden>
+            <label class="free-approx-location-option"><input type="checkbox" id="free-approx-location" checked><span>지도에 대략적인 위치 표시 (약 100m 범위)</span></label>
+            <p class="free-approx-location-note">집 근처에서 찍은 사진이면 꺼 주세요.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="free-season-display">계절 (촬영 시각 기준)</label>
@@ -366,7 +380,8 @@
     form = modal.querySelector('#free-upload-form');
     fields = {
       placeName: modal.querySelector('#free-place-name'), photo: modal.querySelector('#free-photo-file'), fileName: modal.querySelector('#free-file-name'),
-      regionGroup: modal.querySelector('#free-region-group'), region: modal.querySelector('#free-region'), season: modal.querySelector('#free-season'), seasonDisplay: modal.querySelector('#free-season-display'),
+      regionGroup: modal.querySelector('#free-region-group'), region: modal.querySelector('#free-region'), approxLocationGroup: modal.querySelector('#free-approx-location-group'), approxLocation: modal.querySelector('#free-approx-location'),
+      season: modal.querySelector('#free-season'), seasonDisplay: modal.querySelector('#free-season-display'),
       weatherNoteGroup: modal.querySelector('#free-weather-note-group'), weatherNote: modal.querySelector('#free-weather-note'), nickname: modal.querySelector('#free-nickname'), memo: modal.querySelector('#free-memo'),
       feedback: modal.querySelector('#free-validation-feedback'), feedbackTitle: modal.querySelector('#free-feedback-title'), feedbackMessage: modal.querySelector('#free-feedback-message'),
       face: modal.querySelector('#free-face-confirmation'), faceWarning: modal.querySelector('#free-face-warning'), submit: modal.querySelector('#free-submit')

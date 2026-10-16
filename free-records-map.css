@@ -1,0 +1,177 @@
+/* 우리 동네 기록 위치 표시 및 사진 장소 전용 스타일 */
+.free-approx-location-group[hidden] {
+  display: none;
+}
+
+.free-approx-location-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.free-approx-location-option input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.free-approx-location-note {
+  margin: 5px 0 0 27px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.free-records-screen,
+.free-record-place-screen {
+  min-height: 100dvh;
+}
+
+.free-record-city-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.free-record-city-row .free-record-city {
+  min-width: 0;
+  margin: 0;
+}
+
+.free-record-location-button {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--bg-border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.free-record-location-button:focus-visible,
+.free-place-back:focus-visible,
+.free-place-return-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.free-place-topbar {
+  position: relative;
+}
+
+.free-place-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.free-place-content {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+}
+
+.free-place-photo {
+  display: block;
+  width: calc(100% + 32px);
+  max-width: none;
+  height: auto;
+  max-height: 58vh;
+  margin: 0 -16px 16px;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.free-place-details {
+  padding: 0 0 16px;
+}
+
+.free-place-place-name {
+  margin: 0 0 5px;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.free-place-city {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.free-place-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 9px;
+}
+
+.free-place-details .free-record-credit {
+  margin: 0;
+}
+
+.free-place-map {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  z-index: 0;
+}
+
+.free-place-map-note {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.free-place-loading,
+.free-place-missing {
+  margin: 36px 0 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.free-place-return-button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+@media (max-width: 480px) {
+  .free-place-content {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .free-place-photo {
+    width: calc(100% + 24px);
+    margin-right: -12px;
+    margin-left: -12px;
+  }
+
+  .free-place-place-name {
+    font-size: 22px;
+  }
+}

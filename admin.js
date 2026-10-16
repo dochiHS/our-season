@@ -34,7 +34,7 @@
   const SELECT_COLUMNS = [
     'id', 'kind', 'spot_id', 'point_id', 'city', 'district', 'place_name', 'season',
     'time_of_day', 'weather', 'weather_note', 'memo', 'nickname',
-    'photo_path', 'taken_at', 'created_at'
+    'photo_path', 'taken_at', 'created_at', 'approx_lat', 'approx_lng'
   ].join(',');
 
   const loginView = document.getElementById('login-view');
@@ -203,6 +203,12 @@
     pendingRows.forEach(row => pendingList.appendChild(createPhotoCard(row)));
   }
 
+  function hasApproxLocation(row) {
+    const lat = Number(row.approx_lat), lng = Number(row.approx_lng);
+    return row.approx_lat !== null && row.approx_lat !== undefined && row.approx_lng !== null && row.approx_lng !== undefined
+      && Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
   function createPhotoCard(row) {
     const card = makeElement('article', 'photo-card');
     card.dataset.recordId = row.id;
@@ -230,6 +236,7 @@
 
     const content = makeElement('div', 'photo-card-content');
     content.appendChild(makeElement('p', 'photo-kind', getKindLabel(row)));
+    if (row.kind === 'free' && hasApproxLocation(row)) content.appendChild(makeElement('small', 'photo-location-status', '위치 표시: 켬'));
 
     const tags = makeElement('div', 'photo-tags');
     const tagLabels = [

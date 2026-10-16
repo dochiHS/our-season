@@ -177,9 +177,13 @@
     };
   }
 
+  function roundedCoordinate(value) {
+    return Math.round(value * 1000) / 1000;
+  }
+
   async function validateFreeUpload(file) {
     // 우리 동네 기록은 현재 위치를 묻지 않습니다. 사진 EXIF의 촬영 위치로 시·군을 추천하며,
-    // 좌표는 결과에 담지도 저장하지도 않습니다.
+    // 결과로 내보내거나 저장하는 좌표는 국내 사진의 소수 셋째 자리 반올림 값뿐입니다.
     const errorItems = [];
 
     let metadata;
@@ -197,21 +201,23 @@
         city: null,
         district: null,
         takenAt: metadata && metadata.takenAt ? metadata.takenAt : null,
+        approxLat: null,
+        approxLng: null,
         errorItems: errorItems
       };
     }
 
     const takenAt = metadata.takenAt || null;
     const place = guessPlace(metadata.latitude, metadata.longitude);
-    if (!place) {
-      errorItems.push(createOutsideKoreaError());
-    }
+    if (!place) errorItems.push(createOutsideKoreaError());
 
     return {
       ok: errorItems.length === 0,
       city: place ? place.city : null,
       district: place ? place.district : null,
       takenAt: takenAt,
+      approxLat: place ? roundedCoordinate(metadata.latitude) : null,
+      approxLng: place ? roundedCoordinate(metadata.longitude) : null,
       errorItems: errorItems
     };
   }

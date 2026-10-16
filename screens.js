@@ -48,7 +48,12 @@
     const hash = global.location.hash || '#/';
     if (hash === '#/' || hash === '#') return { screen: 'home' };
     if (hash === '#/spots') return { screen: 'spots' };
-    let match = hash.match(/^#\/local(?:\?(.+))?$/);
+    let match = hash.match(/^#\/local\/place\/([^/?]+)$/);
+    if (match) {
+      try { return { screen: 'local-place', recordId: decodeURIComponent(match[1]) }; }
+      catch (error) { return { screen: 'local-place', recordId: '' }; }
+    }
+    match = hash.match(/^#\/local(?:\?(.+))?$/);
     if (match) return { screen: 'local', params: new URLSearchParams(match[1] || '') };
     match = hash.match(/^#\/spot\/([^/?]+)\/season\/(spring|summer|autumn|winter)(?:\?(.+))?$/);
     if (match) {
@@ -262,10 +267,13 @@
 
   function renderRoute() {
     const route = routeFromHash(), cameFromSeason = state.activeScreen === 'season';
-    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season', isLocal = route.screen === 'local';
+    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season';
+    const isLocal = route.screen === 'local', isLocalPlace = route.screen === 'local-place';
     home.hidden = !isHome; listScreen.hidden = !isList; detailScreen.hidden = route.screen !== 'detail';
     const localScreen = document.getElementById('free-records-screen');
+    const localPlaceScreen = document.getElementById('free-record-place-screen');
     if (localScreen) localScreen.hidden = !isLocal;
+    if (localPlaceScreen) localPlaceScreen.hidden = !isLocalPlace;
     if (seasonScreen) seasonScreen.hidden = !isSeason;
     appContainer.classList.toggle('route-home', isHome);
     if (isList) {
@@ -273,6 +281,7 @@
       if (state.focusSearchOnShow) { state.focusSearchOnShow = false; global.setTimeout(() => searchInput && searchInput.focus(), 0); }
     }
     if (isLocal && global.FreeRecords) global.FreeRecords.render(route.params);
+    if (isLocalPlace && global.FreeRecords) global.FreeRecords.renderPlace(route.recordId);
     if (route.screen === 'detail') {
       const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
       if (!spot) { navigate('#/spots', false, true); return; }
@@ -293,7 +302,7 @@
       restoreSeasonContext(route);
       state.photoIndex = 0; renderSeasonScreen(route);
     }
-    if (isHome || isList || isLocal) state.lastSeasonContext = null;
+    if (isHome || isList || isLocal || isLocalPlace) state.lastSeasonContext = null;
     state.activeScreen = route.screen;
   }
 
