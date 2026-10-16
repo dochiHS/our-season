@@ -13,7 +13,7 @@
     screen = document.createElement('section');
     screen.id = 'free-records-screen'; screen.className = 'screen free-records-screen';
     screen.setAttribute('aria-label', '우리 동네 기록'); screen.hidden = true;
-    screen.innerHTML = '<header class="screen-topbar free-records-topbar"><button class="back-button free-records-back" type="button" aria-label="첫 화면으로 돌아가기">‹</button><h1 class="free-records-title">우리 동네 기록</h1><span class="free-records-topbar-spacer" aria-hidden="true"></span></header><nav class="free-records-filters" aria-label="기록 필터"><div class="free-records-filter-row free-records-city-filter" role="group" aria-label="시·군 선택"></div><div class="free-records-filter-row free-records-season-filter" role="group" aria-label="계절 선택"></div></nav><main class="free-record-list" aria-live="polite"></main><div class="free-records-bottom-bar"><button class="btn-submit-upload free-records-upload-button" type="button">📷 우리 동네 기록 올리기</button></div>';
+    screen.innerHTML = '<header class="screen-topbar free-records-topbar"><button class="back-button free-records-back" type="button" aria-label="첫 화면으로 돌아가기">‹</button><h1 class="free-records-title">우리 동네 기록</h1><span class="free-records-topbar-spacer" aria-hidden="true"></span></header><nav class="free-records-filters" aria-label="기록 필터"><div class="free-records-filter-row free-records-city-filter" role="group" aria-label="시·군 선택"></div><div class="free-records-filter-row free-records-season-filter" role="group" aria-label="계절 선택"></div></nav><main class="free-record-list" aria-live="polite"></main><div class="free-records-bottom-bar"><button class="btn-submit-upload free-records-upload-button" type="button"><img src="my-photos-icon.png" alt="" aria-hidden="true" class="ui-icon ui-icon-22"> 우리 동네 기록 올리기</button></div>';
     app.appendChild(screen); list = screen.querySelector('.free-record-list');
     screen.querySelector('.free-records-back').addEventListener('click', () => { global.location.hash = '#/'; });
     screen.querySelector('.free-records-upload-button').addEventListener('click', () => global.FreeUpload && global.FreeUpload.open());
@@ -27,10 +27,7 @@
   }
 
   function client() {
-    const config = global.SUPABASE_CONFIG;
-    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY || !global.supabase || !global.supabase.createClient) return null;
-    if (!client.instance) client.instance = global.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-    return client.instance;
+    return global.OurAuth ? global.OurAuth.getClient() : null;
   }
 
   async function loadRecords() {
@@ -50,6 +47,11 @@
     if (force) { loadPromise = null; loadFailed = false; }
     if (!loadPromise) loadPromise = loadRecords().then(data => { records = data; }).catch(() => { loadFailed = true; });
     return loadPromise;
+  }
+
+  async function refresh() {
+    await ensureRecords(true);
+    if (screen && !screen.hidden) renderFiltersAndRecords();
   }
 
   function key(record) { return `${record.city || ''}|${record.district || ''}`; }
@@ -144,7 +146,9 @@
       const cityRow = document.createElement('div'); cityRow.className = 'free-record-city-row';
       const city = document.createElement('p'); city.className = 'free-record-city'; city.textContent = locationName(row); cityRow.appendChild(city);
       if (coordinates(row) && row.id !== null && row.id !== undefined) {
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'free-record-location-button'; button.textContent = '📍 위치 보기';
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'free-record-location-button';
+        const pinIcon = document.createElement('img'); pinIcon.src = 'icon-pin.png'; pinIcon.alt = ''; pinIcon.setAttribute('aria-hidden', 'true'); pinIcon.className = 'ui-icon ui-icon-16';
+        button.append(pinIcon, document.createTextNode(' 위치 보기'));
         button.addEventListener('click', () => { lastListHash = currentListHash(); pendingPlaceNavigation = true; global.location.hash = `#/local/place/${encodeURIComponent(String(row.id))}`; });
         cityRow.appendChild(button);
       }
@@ -233,5 +237,5 @@
   }
 
   createScreen();
-  global.FreeRecords = Object.freeze({ render, renderPlace });
+  global.FreeRecords = Object.freeze({ render, renderPlace, refresh });
 })(globalThis);

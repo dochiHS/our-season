@@ -5,7 +5,6 @@
   const state = { spots: [], currentSpotId: null, currentPointId: null, userCoords: null, approvedPhotos: [], selectedTakenAt: null };
   const WEATHER_KO = { clear: '맑음', cloudy: '흐림', rain: '비', snow: '눈', fog: '안개', other: '기타' };
   let galleryTimeFilter = 'all', galleryWeatherFilter = 'all';
-  let supabaseClient = null;
   let metadataRequestId = 0;
   const elements = {
     spotTabs: document.getElementById('spot-tabs'), spotSummaryCard: document.getElementById('spot-summary-card'),
@@ -28,12 +27,7 @@
   let isSubmitting = false, detailPhotos = [], detailPhotoIndex = 0, detailPhotoContext = null, swipeStartX = null;
   function getCurrentSpot() { return state.spots.find(spot => spot.id === state.currentSpotId) || null; }
   function getCurrentPoint(spot = getCurrentSpot()) { if (!spot || !Array.isArray(spot.points) || !spot.points.length) return null; return spot.points.find(point => point.id === state.currentPointId) || spot.points[0]; }
-  function getSupabaseClient() {
-    if (supabaseClient) return supabaseClient;
-    const config = global.SUPABASE_CONFIG;
-    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY || !global.supabase || typeof global.supabase.createClient !== 'function') return null;
-    supabaseClient = global.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY); return supabaseClient;
-  }
+  function getSupabaseClient() { return global.OurAuth ? global.OurAuth.getClient() : null; }
   function getSeasonView() {
     const requested = new URLSearchParams(global.location ? global.location.search : '').get('season');
     const isPreview = global.SpotData.SEASONS.includes(requested);
@@ -104,7 +98,7 @@
     const spot = getCurrentSpot();
     if (!spot) { elements.spotSummaryCard.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">명소 정보를 불러올 수 없습니다.</p>'; return; }
     const point = getCurrentPoint(spot), sun = spot.sunTimes || { sunrise: '--:--', sunset: '--:--' }, radius = point && Number.isFinite(Number(point.radiusMeters)) ? Number(point.radiusMeters) : 500;
-    elements.spotSummaryCard.innerHTML = `<div class="summary-header"><div><h2 class="spot-name">${spot.name}</h2><span class="point-name-badge">📍 ${point ? point.name : '대표 위치'} (반경 ${radius}m)</span></div><div class="sun-times-pill" title="오늘의 일출·일몰 시각"><span class="sun-item">🌅 ${sun.sunrise}</span><span class="sun-sep">|</span><span class="sun-item">🌇 ${sun.sunset}</span></div></div><div class="spot-meta-list"><div class="meta-item"><span class="meta-icon">⏱️</span><span class="meta-label">운영시간</span><span class="meta-val">${spot.operatingHours || '상시 개방'}</span></div><div class="meta-item"><span class="meta-icon">🚗</span><span class="meta-label">주차안내</span><span class="meta-val">${spot.parking || '주차 가능'}</span></div><div class="meta-item"><span class="meta-icon">📌</span><span class="meta-label">주의메모</span><span class="meta-val">${spot.safetyNotice || '현장 확인 예정'}</span></div></div>`;
+    elements.spotSummaryCard.innerHTML = `<div class="summary-header"><div><h2 class="spot-name">${spot.name}</h2><span class="point-name-badge"><img src="icon-pin.png" alt="" aria-hidden="true" class="ui-icon ui-icon-16"> ${point ? point.name : '대표 위치'} (반경 ${radius}m)</span></div><div class="sun-times-pill" title="오늘의 일출·일몰 시각"><span class="sun-item"><img src="icon-sunrise.png" alt="" aria-hidden="true" class="ui-icon ui-icon-18"> ${sun.sunrise}</span><span class="sun-sep">|</span><span class="sun-item"><img src="icon-sunset.png" alt="" aria-hidden="true" class="ui-icon ui-icon-18"> ${sun.sunset}</span></div></div><div class="spot-meta-list"><div class="meta-item"><span class="meta-icon">⏱️</span><span class="meta-label">운영시간</span><span class="meta-val">${spot.operatingHours || '상시 개방'}</span></div><div class="meta-item"><span class="meta-icon"><img src="icon-car.png" alt="" aria-hidden="true" class="ui-icon ui-icon-18"></span><span class="meta-label">주차안내</span><span class="meta-val">${spot.parking || '주차 가능'}</span></div><div class="meta-item"><span class="meta-icon"><img src="icon-memo.png" alt="" aria-hidden="true" class="ui-icon ui-icon-18"></span><span class="meta-label">주의메모</span><span class="meta-val">${spot.safetyNotice || '현장 확인 예정'}</span></div></div>`;
     if (elements.uploadTargetName) elements.uploadTargetName.textContent = `${spot.name} (${point ? point.name : '대표 위치'})`;
   }
   function renderMatrix() {
@@ -219,7 +213,13 @@
     if (!state.userCoords) { elements.btnOpenUpload.classList.add('state-unknown'); elements.btnUploadLabel.textContent = '내 위치 확인 후 현장 등록하기'; setUploadDistanceNotice('내 위치를 확인하면 명소까지의 거리와 등록 가능 여부를 안내해 드립니다.'); return; }
     const status = getNearestPointStatus(spot), distance = status ? status.distanceMeters : null, pointName = status && status.point ? status.point.name : '가장 가까운 촬영 지점', radius = status ? status.radius : 500;
     if (status && status.withinAnyPoint) { elements.btnOpenUpload.classList.add('state-ready'); elements.btnUploadLabel.textContent = '현장 사진 등록하기'; setUploadDistanceNotice(`가장 가까운 지점(${pointName})까지 ${global.UploadValidator.formatDistance(distance)}입니다. 촬영 지점 반경 안에 있습니다.`); }
-    else { const text = distance === null ? '거리 확인 불가' : global.UploadValidator.formatDistance(distance); elements.btnOpenUpload.classList.add('state-locked'); elements.btnUploadLabel.textContent = `🔒 현장까지 ${text} · 도착하면 등록 가능`; setUploadDistanceNotice(distance === null ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.` : `현재 가장 가까운 지점(${pointName})에서 ${text} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`); }
+    else {
+      const text = distance === null ? '거리 확인 불가' : global.UploadValidator.formatDistance(distance);
+      const lockIcon = document.createElement('img'); lockIcon.src = 'icon-lock.png'; lockIcon.alt = ''; lockIcon.setAttribute('aria-hidden', 'true'); lockIcon.className = 'ui-icon ui-icon-16';
+      elements.btnOpenUpload.classList.add('state-locked');
+      elements.btnUploadLabel.replaceChildren(lockIcon, document.createTextNode(` 현장까지 ${text} · 도착하면 등록 가능`));
+      setUploadDistanceNotice(distance === null ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.` : `현재 가장 가까운 지점(${pointName})에서 ${text} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`);
+    }
   }
   function setFeedback(status, title, message, hint) { if (!elements.validationFeedbackCard) return; elements.validationFeedbackCard.className = 'validation-feedback-box'; if (status) elements.validationFeedbackCard.classList.add(status); elements.feedbackTitle.textContent = title || ''; elements.feedbackMessage.textContent = message || ''; elements.feedbackMessage.style.whiteSpace = 'pre-line'; elements.feedbackHint.textContent = hint || ''; }
   function getCaptureSeason(takenAt) { const date = takenAt ? new Date(takenAt) : new Date(); return global.SpotData.getCurrentSeason(Number.isNaN(date.getTime()) ? new Date() : date); }
@@ -251,6 +251,8 @@
   function updateSelectedChips() { document.querySelectorAll('#upload-form input[type="radio"]').forEach(input => { const label = input.closest('.chip-option'); if (label) label.classList.toggle('selected', input.checked); }); }
   async function readSelectedPhotoTime(file) { const request = ++metadataRequestId; state.selectedTakenAt = null; updateSeasonDisplay(null); if (!file || !global.ExifGpsReader || typeof global.ExifGpsReader.extractDateTimeOriginal !== 'function') return; try { const takenAt = await global.ExifGpsReader.extractDateTimeOriginal(file); if (request !== metadataRequestId || !elements.photoFileInput || elements.photoFileInput.files[0] !== file) return; state.selectedTakenAt = takenAt || null; updateSeasonDisplay(state.selectedTakenAt); } catch (error) { if (request !== metadataRequestId) return; state.selectedTakenAt = null; updateSeasonDisplay(null); } }
   async function openUploadModal(forceLocationCheck) {
+    const user = await global.OurAuth.requireLogin();
+    if (!user) return false;
     const invited = global.Invite && global.Invite.isActive();
     if (invited) {
       if (!getCurrentSpot()) return false;
@@ -292,6 +294,9 @@
       const capturedAt = validation.details && validation.details.photoLocation ? validation.details.photoLocation.takenAt || null : state.selectedTakenAt; state.selectedTakenAt = capturedAt; const season = getCaptureSeason(capturedAt); updateSeasonDisplay(capturedAt);
       setFeedback('status-checking', '위치 검증을 통과했습니다.', '사진을 웹용 크기로 압축하고 Supabase에 저장합니다.');
       const compressed = await global.ImageCompressor.compressImage(file), photoPath = `${spot.id}/${createRandomUuid()}.jpg`;
+      let user = await global.OurAuth.getUser();
+      if (!user) user = await global.OurAuth.requireLogin();
+      if (!user) { setFeedback('status-error', '로그인이 필요해요.', '로그인이 풀렸어요. 다시 로그인한 뒤 등록해 주세요.'); return; }
       const { error: uploadError } = await client.storage.from('season-photos').upload(photoPath, compressed.blob, { cacheControl: '3600', contentType: 'image/jpeg', upsert: false }); if (uploadError) throw uploadError;
       const { error: insertError } = await client.from('season_photos').insert({ spot_id: spot.id, point_id: validation.pointId, season, time_of_day: timeOfDay, weather, weather_note: weather === 'other' ? (weatherNote || null) : null, memo: memo || null, nickname, photo_path: photoPath, taken_at: capturedAt || new Date().toISOString() }); if (insertError) throw insertError;
       closeUploadModal(); resetUploadForm(); setAppNotice('등록됐어요. 운영자 승인 후 공개됩니다.', 'success');
@@ -324,6 +329,6 @@
     if (elements.uploadForm) elements.uploadForm.addEventListener('change', event => { if (event.target && event.target.name === 'weather') updateWeatherNoteVisibility(); updateSelectedChips(); });
     updateWeatherNoteVisibility(); updateSelectedChips();
   }
-  global.App = Object.freeze({ state, renderTabs, renderSummaryCard, renderPointTabs, renderMatrix, selectSpot, requestUserLocation, openUploadModal, initApp });
+  global.App = Object.freeze({ state, renderTabs, renderSummaryCard, renderPointTabs, renderMatrix, selectSpot, requestUserLocation, openUploadModal, loadApprovedPhotos, initApp });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initApp); else initApp();
 })(globalThis);

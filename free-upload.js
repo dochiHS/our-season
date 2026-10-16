@@ -9,12 +9,7 @@
   const WEATHER_LABELS = Object.freeze({ clear: '맑음', cloudy: '흐림', rain: '비', snow: '눈', fog: '안개', other: '기타' });
   let modal, form, fields, isSubmitting = false, validationRequestId = 0, currentValidation = null, selectedTakenAt = null;
 
-  function getSupabaseClient() {
-    const config = global.SUPABASE_CONFIG;
-    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY || !global.supabase || typeof global.supabase.createClient !== 'function') return null;
-    if (!getSupabaseClient.client) getSupabaseClient.client = global.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-    return getSupabaseClient.client;
-  }
+  function getSupabaseClient() { return global.OurAuth ? global.OurAuth.getClient() : null; }
 
   function createRandomUuid() {
     if (global.crypto && typeof global.crypto.randomUUID === 'function') return global.crypto.randomUUID();
@@ -251,6 +246,12 @@
       const season = getSeason(selectedTakenAt);
       const compressed = await global.ImageCompressor.compressImage(file);
       const photoPath = `free/${city}/${createRandomUuid()}.jpg`;
+      let user = await global.OurAuth.getUser();
+      if (!user) user = await global.OurAuth.requireLogin();
+      if (!user) {
+        showFeedback('status-error', '로그인이 필요해요.', '로그인이 풀렸어요. 다시 로그인한 뒤 등록해 주세요.');
+        return;
+      }
       const { error: uploadError } = await client.storage.from('season-photos').upload(photoPath, compressed.blob, {
         cacheControl: '3600', contentType: 'image/jpeg', upsert: false
       });
@@ -311,7 +312,7 @@
           <div class="form-group">
             <label class="form-label" for="free-photo-file">사진 파일 (JPEG/PNG)</label>
             <label for="free-photo-file" class="file-upload-box">
-              <span class="upload-icon">📷</span><span class="upload-main-text" id="free-file-name">사진 선택하기</span>
+              <span class="upload-icon"><img src="my-photos-icon.png" alt="" aria-hidden="true" class="ui-icon ui-icon-28"></span><span class="upload-main-text" id="free-file-name">사진 선택하기</span>
               <span class="upload-sub-text">국내에서 찍은 원본 사진 (위치 정보 필수)</span>
             </label>
             <input type="file" id="free-photo-file" accept="image/jpeg,image/png,image/jpg" style="display:none;">
@@ -401,7 +402,9 @@
     updateChipSelection();
   }
 
-  function open() {
+  async function open() {
+    const user = global.OurAuth ? await global.OurAuth.requireLogin() : null;
+    if (!user) return false;
     if (!modal) createModal();
     if (isSubmitting) return false;
     resetForm();

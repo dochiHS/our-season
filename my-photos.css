@@ -1,0 +1,89 @@
+/* 첫 화면 인증 영역과 내가 올린 사진 화면 */
+#home-screen { position: relative; }
+.home-auth-status {
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-height: 30px;
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid rgba(230,220,203,.8);
+  border-radius: 16px;
+  background: rgba(255,253,249,.92);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.home-auth-status[hidden], .home-auth-status [hidden] { display: none !important; }
+.home-auth-status button { font-size: inherit; }
+.home-auth-login, .home-auth-sign-out {
+  padding: 2px 1px;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.home-auth-login:disabled, .home-auth-sign-out:disabled { opacity: .55; cursor: wait; }
+#home-screen .header-content { padding-top: 28px; }
+.home-my-photos-button {
+  width: 100%;
+  min-height: 43px;
+  margin-top: 7px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.home-my-photos-button[hidden] { display: none !important; }
+.home-my-photos-title { color: var(--color-primary-dark); font-size: 12px; font-weight: 700; }
+.home-my-photos-hint { color: var(--text-muted); font-size: 10px; }
+
+.my-photos-screen { min-height: 100vh; padding-bottom: 28px; background: var(--bg-primary); }
+.my-photos-topbar { min-height: 68px; }
+.my-photos-back { flex: 0 0 44px; width: 44px; height: 44px; }
+.my-photos-title { min-width: 0; flex: 1; color: var(--text-primary); font-family: var(--font-serif); font-size: 18px; font-weight: 700; text-align: center; }
+.my-photos-topbar-spacer { flex: 0 0 44px; }
+.my-photos-content { padding: 10px 16px 28px; }
+.my-photos-message { margin: 3px 0 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-secondary); font-size: 12px; text-align: center; }
+.my-photos-message[hidden] { display: none; }
+.my-photos-message.is-error { color: var(--color-danger); background: var(--color-danger-bg); }
+.my-photos-message.is-success { color: var(--color-success); background: var(--color-success-bg); }
+.my-photos-list { display: grid; gap: 12px; }
+.my-photo-card { display: flex; align-items: stretch; gap: 12px; overflow: hidden; padding: 10px; border: 1px solid var(--bg-border); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: var(--shadow-card); }
+.my-photo-thumbnail { flex: 0 0 104px; width: 104px; min-height: 104px; align-self: flex-start; border-radius: var(--radius-md); background: var(--bg-subtle); object-fit: cover; }
+.my-photo-body { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 2px 0; }
+.my-photo-place { color: var(--text-primary); font-family: var(--font-serif); font-size: 14px; font-weight: 700; line-height: 1.4; }
+.my-photo-meta { color: var(--text-muted); font-size: 11px; }
+.my-photo-status { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
+.my-photo-status.is-approved { background: var(--color-success-bg); color: var(--color-success); }
+.my-photo-status.is-pending { background: var(--color-warning-bg); color: var(--color-warning); }
+.my-photo-delete { min-height: 32px; margin-top: auto; padding: 5px 12px; border: 1px solid rgba(179,79,67,.35); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--color-danger); font-size: 11px; cursor: pointer; }
+.my-photo-delete:disabled { opacity: .5; cursor: wait; }
+.my-photos-empty { padding: 42px 12px; color: var(--text-secondary); font-family: var(--font-serif); font-size: 14px; text-align: center; }
+.my-photos-note { margin: 16px 2px 0; color: var(--text-muted); font-size: 11px; line-height: 1.6; }
+.my-photos-confirm-sheet { padding-top: 20px; }
+.my-photos-confirm-copy { color: var(--text-primary); font-size: 14px; line-height: 1.65; }
+.my-photos-confirm-status { min-height: 0; margin-top: 8px; color: var(--color-danger); font-size: 12px; }
+.my-photos-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 18px; }
+.my-photos-confirm-actions button { min-height: 44px; border: 1px solid var(--bg-border); border-radius: var(--radius-md); background: var(--bg-primary); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.my-photos-confirm-actions .my-photos-confirm-delete { border-color: var(--color-danger); background: var(--color-danger); color: #fff; }
+.my-photos-confirm-actions button:disabled { opacity: .55; cursor: wait; }
+.my-photos-confirm-modal { z-index: 120; }
+@media (max-width: 360px) { .my-photo-thumbnail { flex-basis: 86px; width: 86px; min-height: 86px; } .my-photo-card { gap: 9px; } }

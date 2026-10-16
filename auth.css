@@ -1,0 +1,20 @@
+/* 로그인 창은 기존 modal-sheet 구성과 공통 색상 토큰을 사용합니다. */
+.auth-sheet { padding-top: 20px; }
+.auth-sheet-header { position: sticky; top: -20px; z-index: 2; margin: -20px -20px 16px; padding: 20px 20px 12px; background: var(--bg-surface); }
+.auth-intro { margin: 0 0 16px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 18px; padding: 4px; border: 1px solid var(--bg-border); border-radius: var(--radius-md); background: var(--bg-primary); }
+.auth-tab { min-height: 40px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font-size: 13px; cursor: pointer; }
+.auth-tab.is-active { background: var(--bg-surface); color: var(--color-primary-dark); font-weight: 700; box-shadow: var(--shadow-card); }
+.auth-form { display: grid; gap: 8px; }
+.auth-field-label { margin-top: 5px; color: var(--text-primary); font-size: 12px; font-weight: 600; }
+.auth-input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; }
+.auth-input:focus { outline: 2px solid rgba(167,127,70,.28); border-color: var(--color-primary); }
+.auth-confirm-group[hidden] { display: none; }
+.auth-status { margin-top: 8px; padding: 10px 12px; border: 1px solid rgba(179,79,67,.3); border-radius: var(--radius-md); background: var(--color-danger-bg); color: var(--color-danger); font-size: 12px; line-height: 1.5; }
+.auth-status:not(.is-error) { border-color: rgba(63,118,85,.3); background: var(--color-success-bg); color: var(--color-success); }
+.auth-status[hidden] { display: none; }
+.auth-submit { margin-top: 12px; }
+.home-auth-status { margin: 14px auto 0; color: var(--text-secondary); font-size: 11px; line-height: 1.4; text-align: center; }
+.home-auth-status[hidden] { display: none; }
+.home-auth-sign-out { padding: 0; border: 0; background: transparent; color: var(--color-primary-dark); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.home-auth-sign-out:disabled { opacity: .55; cursor: wait; }

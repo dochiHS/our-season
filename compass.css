@@ -219,6 +219,24 @@
 .compass-upload-button { border-color: var(--color-success); background: var(--color-success); }
 .compass-upload-button[hidden] { display: none; }
 
+.compass-launch-button {
+  width: calc(100% - 32px);
+  min-height: 44px;
+  margin: 0 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: #F5EEDF;
+  color: #705B3F;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .compass-needle,
   .compass-cardinal-dial,
