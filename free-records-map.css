@@ -67,9 +67,18 @@
 
 .free-place-topbar {
   position: relative;
+  min-height: 68px;
+}
+
+.free-place-back,
+.free-place-topbar .free-records-topbar-spacer {
+  flex: 0 0 44px;
+  width: 44px;
 }
 
 .free-place-title {
+  min-width: 0;
+  flex: 1;
   margin: 0;
   color: var(--text-primary);
   font-family: var(--font-serif);

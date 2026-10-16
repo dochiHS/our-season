@@ -87,10 +87,24 @@
     const season = global.SpotData && global.SpotData.getCurrentSeason ? global.SpotData.getCurrentSeason() : 'spring';
     spots.forEach(spot => {
       const spotPhotos = photos.filter(photo => photo.spotId === spot.id).slice().sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
+      let referencePhoto = null;
+      if (!spotPhotos.length && global.ReferencePhotos) {
+        const currentSeasonPhotos = global.ReferencePhotos.getReferencePhotos(spot.id, season);
+        if (currentSeasonPhotos.length) referencePhoto = currentSeasonPhotos[0];
+        else {
+          for (const referenceSeason of ['spring', 'summer', 'autumn', 'winter']) {
+            const seasonPhotos = global.ReferencePhotos.getReferencePhotos(spot.id, referenceSeason);
+            if (seasonPhotos.length) { referencePhoto = seasonPhotos[0]; break; }
+          }
+        }
+      }
       const card = document.createElement('button'); card.type = 'button'; card.className = 'spot-list-card'; card.setAttribute('aria-label', `${spot.name} 명소 화면 보기`);
-      const thumb = document.createElement('span'); thumb.className = `spot-list-thumbnail${spotPhotos.length ? '' : ' is-empty'}`; thumb.dataset.season = season;
+      const thumb = document.createElement('span'); thumb.className = `spot-list-thumbnail${spotPhotos.length || referencePhoto ? '' : ' is-empty'}`; thumb.dataset.season = season;
       if (spotPhotos.length) { const image = document.createElement('img'); image.src = spotPhotos[0].dataUrl; image.alt = `${spot.name} 최근 승인 사진`; image.loading = 'lazy'; thumb.appendChild(image); }
-      else thumb.setAttribute('aria-label', '아직 승인된 사진이 없습니다');
+      else if (referencePhoto) {
+        const image = document.createElement('img'); image.src = referencePhoto.thumb; image.alt = `${spot.name} 참고 사진`; image.loading = 'lazy'; thumb.appendChild(image);
+        const badge = document.createElement('span'); badge.className = 'spot-list-reference-badge'; badge.textContent = '참고'; thumb.appendChild(badge);
+      } else thumb.setAttribute('aria-label', '아직 승인된 사진이 없습니다');
       const body = document.createElement('span'); body.className = 'spot-list-card-body';
       const name = document.createElement('span'); name.className = 'spot-list-card-name'; name.textContent = spot.name; body.appendChild(name);
       const meta = document.createElement('span'); meta.className = 'spot-list-card-meta';
