@@ -18,3 +18,69 @@
 .home-auth-status[hidden] { display: none; }
 .home-auth-sign-out { padding: 0; border: 0; background: transparent; color: var(--color-primary-dark); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .home-auth-sign-out:disabled { opacity: .55; cursor: wait; }
+
+/* 첫 화면: 로그인 진입을 동네 기록 버튼 아래에 배치 */
+#home-screen .home-auth-status {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin: 7px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+}
+#home-screen .home-auth-login {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid #D9C49F;
+  border-radius: var(--radius-lg);
+  background: #F5EEDF;
+  color: #705B3F;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+#home-screen .home-auth-login::after {
+  content: "사진을 올리려면 로그인해 주세요";
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 400;
+}
+#home-screen .home-my-photos-button {
+  min-height: 44px;
+  border: 1px solid #D9C49F;
+  border-radius: var(--radius-lg);
+  background: #F5EEDF;
+  color: #705B3F;
+  box-shadow: none;
+}
+#home-screen .home-auth-name { color: var(--text-muted); font-size: 12px; }
+#home-screen .home-auth-sign-out {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 500;
+}
+#home-screen .home-auth-status [hidden] { display: none !important; }
+
+.home-auth-login:disabled, .home-auth-sign-out:disabled { opacity: .55; cursor: wait; }
