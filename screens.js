@@ -6,6 +6,7 @@
   const home = document.getElementById('home-screen');
   const listScreen = document.getElementById('spots-screen');
   const detailScreen = document.getElementById('detail-screen');
+  const compassScreen = document.getElementById('compass-screen');
   const list = document.getElementById('spot-list');
   const searchInput = document.getElementById('spot-search-input');
   const title = document.getElementById('detail-page-title');
@@ -60,9 +61,14 @@
       try { return { screen: 'season', spotId: decodeURIComponent(match[1]), season: match[2], params: new URLSearchParams(match[3] || '') }; }
       catch (error) { return { screen: 'home' }; }
     }
-    match = hash.match(/^#\/spot\/([^/?]+)(?:\?.*)?$/);
+    match = hash.match(/^#\/spot\/([^/?]+)\/compass(?:\?(.+))?$/);
     if (match) {
-      try { return { screen: 'detail', spotId: decodeURIComponent(match[1]) }; }
+      try { return { screen: 'compass', spotId: decodeURIComponent(match[1]), pointId: new URLSearchParams(match[2] || '').get('point') || '' }; }
+      catch (error) { return { screen: 'home' }; }
+    }
+    match = hash.match(/^#\/spot\/([^/?]+)(?:\?(.+))?$/);
+    if (match) {
+      try { return { screen: 'detail', spotId: decodeURIComponent(match[1]), params: new URLSearchParams(match[2] || '') }; }
       catch (error) { return { screen: 'home' }; }
     }
     return { screen: 'home' };
@@ -281,9 +287,11 @@
 
   function renderRoute() {
     const route = routeFromHash(), cameFromSeason = state.activeScreen === 'season';
-    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season';
+    const isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season', isCompass = route.screen === 'compass';
     const isLocal = route.screen === 'local', isLocalPlace = route.screen === 'local-place';
+    if (!isCompass && global.Compass) global.Compass.close();
     home.hidden = !isHome; listScreen.hidden = !isList; detailScreen.hidden = route.screen !== 'detail';
+    if (compassScreen) compassScreen.hidden = !isCompass;
     const localScreen = document.getElementById('free-records-screen');
     const localPlaceScreen = document.getElementById('free-record-place-screen');
     if (localScreen) localScreen.hidden = !isLocal;
@@ -300,6 +308,13 @@
       const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
       if (!spot) { navigate('#/spots', false, true); return; }
       global.App.selectSpot(route.spotId);
+      const requestedPoint = route.params && route.params.get('point');
+      if (requestedPoint && spot.points.some(point => point.id === requestedPoint)) {
+        global.App.state.currentPointId = requestedPoint;
+        if (global.App.renderPointTabs) global.App.renderPointTabs();
+        if (global.App.renderSummaryCard) global.App.renderSummaryCard();
+        if (global.App.renderMatrix) global.App.renderMatrix();
+      }
       if (cameFromSeason && state.lastSeasonContext && state.lastSeasonContext.spotId === spot.id) {
         global.App.state.currentPointId = state.lastSeasonContext.pointId;
         const timeButton = document.querySelector(`[data-gallery-time="${CSS.escape(state.lastSeasonContext.time)}"]`); if (timeButton) timeButton.click();
@@ -308,6 +323,12 @@
       } else if (!cameFromSeason) state.lastSeasonContext = null;
       if (title) title.textContent = spot.name;
       global.setTimeout(() => { global.dispatchEvent(new Event('resize')); if (global.SpotMap) global.SpotMap.refresh(true); }, 0);
+    }
+    if (isCompass) {
+      const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
+      if (!spot) { navigate('#/spots', false, true); return; }
+      global.App.selectSpot(route.spotId);
+      if (global.Compass) global.Compass.open(route.spotId, route.pointId);
     }
     if (isSeason) {
       const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
@@ -345,6 +366,12 @@
     document.getElementById('btn-open-local-records').addEventListener('click', () => navigate('#/local'));
     document.getElementById('btn-list-back').addEventListener('click', () => navigate('#/', false, true));
     document.getElementById('btn-detail-back').addEventListener('click', () => navigate('#/spots', false, true));
+    const compassLaunch = document.getElementById('btn-open-compass');
+    if (compassLaunch) compassLaunch.addEventListener('click', () => {
+      const route = routeFromHash(), currentSpot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
+      const currentPointId = currentSpot && currentSpot.points.some(point => point.id === global.App.state.currentPointId) ? global.App.state.currentPointId : currentSpot && currentSpot.points[0] && currentSpot.points[0].id;
+      if (currentSpot && currentPointId) navigate(`#/spot/${encodeURIComponent(currentSpot.id)}/compass?point=${encodeURIComponent(currentPointId)}`);
+    });
     document.querySelectorAll('[data-spot-sort]').forEach(button => button.addEventListener('click', async () => {
       if (button.dataset.spotSort !== 'nearest') { state.locationError = ''; setSort('name'); return; }
       state.locationError = ''; setSort('nearest');
@@ -367,10 +394,16 @@
     setSort('name'); renderRoute();
   }
 
-  global.Screens = Object.freeze({ navigateSeason: (spotId, season) => {
-    const filters = getFilterValues(), spot = global.App.state.spots.find(item => item.id === spotId), point = spot && spot.points.find(item => item.id === global.App.state.currentPointId);
-    navigate(seasonHash(spotId, season, { pointId: point && point.id, ...filters }));
-  } });
+  global.Screens = Object.freeze({
+    navigateSeason: (spotId, season) => {
+      const filters = getFilterValues(), spot = global.App.state.spots.find(item => item.id === spotId), point = spot && spot.points.find(item => item.id === global.App.state.currentPointId);
+      navigate(seasonHash(spotId, season, { pointId: point && point.id, ...filters }));
+    },
+    navigateSpot: (spotId, pointId) => {
+      const query = pointId ? `?point=${encodeURIComponent(pointId)}` : '';
+      navigate(`#/spot/${encodeURIComponent(spotId)}${query}`);
+    }
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScreens, { once: true });
   else initScreens();
 })(globalThis);

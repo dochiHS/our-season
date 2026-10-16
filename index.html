@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="map-styles.css">
   <link rel="stylesheet" href="free-photo-viewer.css">
   <link rel="stylesheet" href="free-records-map.css">
+  <link rel="stylesheet" href="compass.css">
   <link rel="stylesheet" href="reference-photos.css">
   <link rel="stylesheet" href="ui-fixes.css">
 </head>
@@ -85,6 +86,7 @@
       <section class="spot-map-section" aria-label="촬영 지점 지도">
         <div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div>
       </section>
+      <button id="btn-open-compass" class="compass-launch-button" type="button">🧭 나침반으로 찾아가기</button>
       <nav id="point-tabs-section" class="point-tabs-section" aria-label="촬영 지점 선택" hidden>
         <div id="point-tabs" class="spots-tab-scroll point-tab-scroll"></div>
       </nav>
@@ -190,7 +192,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="nickname-input">닉네임 (1~20자)</label>
-            <input type="text" id="nickname-input" name="nickname" minlength="1" maxlength="20" required autocomplete="nickname" placeholder="닉네임을 입력해 주세요" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);">
+            <input type="text" id="nickname-input" name="nickname" minlength="1" maxlength="20" required autocomplete="nickname" placeholder="닉네임을 입력해 주세요" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-family: var(--font-sans);">
           </div>
           <div class="form-group">
             <label class="form-label">사진 파일 (JPEG/PNG)</label>
@@ -202,7 +204,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="photo-memo-input">사진 메모 (선택)</label>
-            <input type="text" id="photo-memo-input" name="memo" maxlength="30" placeholder="예: 해질녘 토성 앞 노을빛" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans);">
+            <input type="text" id="photo-memo-input" name="memo" maxlength="30" placeholder="예: 해질녘 토성 앞 노을빛" style="width: 100%; padding: 10px 12px; border: 1px solid var(--bg-border); border-radius: var(--radius-sm); background: var(--bg-primary); color: var(--text-primary); font-size: 13px; font-family: var(--font-sans);">
           </div>
           <div id="validation-feedback-card" class="validation-feedback-box">
             <div id="feedback-title" class="feedback-title"></div><div id="feedback-message" class="feedback-message"></div><div id="feedback-hint" class="feedback-hint"></div>
@@ -232,6 +234,7 @@
   <script src="free-photo-viewer.js"></script>
   <script src="free-records.js"></script>
   <script src="map-feature.js"></script>
+  <script src="compass.js"></script>
   <script src="screens.js"></script>
   <script src="upload-draft-resume.js"></script>
 </body>
