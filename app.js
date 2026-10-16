@@ -111,6 +111,7 @@
     if (!elements.photoMatrix) return; const spot = getCurrentSpot(); if (!spot) return;
     const point = getCurrentPoint(spot), { SEASONS, SEASONS_KO, TIME_OF_DAY_KO } = global.SpotData, view = getSeasonView();
     elements.photoMatrix.innerHTML = '';
+    let hasVisibleReferencePhoto = false;
     SEASONS.forEach(season => {
       const photos = state.approvedPhotos
         .filter(photo => photo.spotId === spot.id && photo.pointId === (point && point.id) && photo.season === season
@@ -118,9 +119,15 @@
           && (galleryWeatherFilter === 'all' || photo.weather === galleryWeatherFilter))
         .slice()
         .sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
+      const hasUserSeasonPhotos = state.approvedPhotos.some(photo => photo.spotId === spot.id && photo.pointId === (point && point.id) && photo.season === season);
+      const filtersAreAll = galleryTimeFilter === 'all' && galleryWeatherFilter === 'all';
+      const referencePhoto = filtersAreAll && !hasUserSeasonPhotos && global.ReferencePhotos
+        ? global.ReferencePhotos.getReferencePhotos(spot.id, season)[0]
+        : null;
+      if (referencePhoto) hasVisibleReferencePhoto = true;
       const current = season === view.season;
-      const pile = document.createElement('button'); pile.type = 'button'; pile.className = `season-pile${current ? ' is-current-season' : ''}${photos.length ? ' has-photos' : ' is-empty'}`;
-      pile.setAttribute('aria-label', `${SEASONS_KO[season]} 사진 ${photos.length}장${photos.length ? ', 사진 보기' : ''}`);
+      const pile = document.createElement('button'); pile.type = 'button'; pile.className = `season-pile${current ? ' is-current-season' : ''}${photos.length || referencePhoto ? ' has-photos' : ' is-empty'}`;
+      pile.setAttribute('aria-label', `${SEASONS_KO[season]} 사진 ${photos.length ? `${photos.length}장` : referencePhoto ? '관광공사 참고 사진' : '0장'}${photos.length || referencePhoto ? ', 사진 보기' : ''}`);
       if (current) { pile.setAttribute('aria-current', view.isPreview ? 'true' : 'date'); pile.title = view.isPreview ? `현재 강조 계절: ${SEASONS_KO[season]} (미리보기)` : '오늘 날짜 기준 현재 계절'; }
       const stack = document.createElement('span'); stack.className = 'season-pile-stack';
       if (photos.length) {
@@ -140,16 +147,26 @@
         const timeTag = document.createElement('span'); timeTag.textContent = TIME_OF_DAY_KO[photos[0].timeOfDay] || '시간 미상';
         const weatherTag = document.createElement('span'); weatherTag.textContent = WEATHER_KO[photos[0].weather] || '날씨 미상';
         tags.append(timeTag, weatherTag); cover.appendChild(tags); stack.appendChild(cover);
+      } else if (referencePhoto) {
+        const cover = document.createElement('span'); cover.className = 'season-pile-cover';
+        const img = document.createElement('img'); img.src = referencePhoto.thumb; img.alt = `${spot.name} ${SEASONS_KO[season]} 참고 사진`; img.loading = 'lazy'; cover.appendChild(img);
+        const badge = document.createElement('span'); badge.className = 'reference-photo-badge'; badge.textContent = '참고 사진'; cover.appendChild(badge);
+        stack.appendChild(cover);
       } else {
         const empty = document.createElement('span'); empty.className = 'season-pile-empty'; empty.textContent = '아직 사진이 없어요'; stack.appendChild(empty);
       }
       const caption = document.createElement('span'); caption.className = 'season-pile-caption';
       const seasonName = document.createElement('span'); seasonName.className = 'season-pile-name'; seasonName.textContent = SEASONS_KO[season];
-      const count = document.createElement('span'); count.className = 'season-pile-count'; count.textContent = `사진 ${photos.length}장`;
+      const count = document.createElement('span'); count.className = 'season-pile-count'; count.textContent = referencePhoto ? '관광공사 사진' : `사진 ${photos.length}장`;
       caption.append(seasonName, count); pile.append(stack, caption);
       pile.addEventListener('click', () => { if (global.Screens && typeof global.Screens.navigateSeason === 'function') global.Screens.navigateSeason(spot.id, season); });
       elements.photoMatrix.appendChild(pile);
     });
+    if (hasVisibleReferencePhoto) {
+      const referenceCredit = document.createElement('p'); referenceCredit.className = 'matrix-reference-credit';
+      referenceCredit.textContent = '참고 사진 출처: ⓒ한국관광콘텐츠랩 (공공누리 제1유형)';
+      elements.photoMatrix.appendChild(referenceCredit);
+    }
   }
   function renderDetailPhoto() {
     if (!detailPhotos.length || !detailPhotoContext) return;
@@ -192,8 +209,8 @@
     updateHeight();
   }
   function updateUploadButton() {
-    const spot = getCurrentSpot(); if (!elements.btnOpenUpload || !elements.btnUploadLabel) return; elements.btnOpenUpload.classList.remove('state-ready', 'state-locked', 'state-unknown');
-    if (!spot || !state.userCoords) { elements.btnOpenUpload.classList.add('state-unknown'); elements.btnUploadLabel.textContent = '내 위치 확인 후 현장 등록하기'; setUploadDistanceNotice('내 위치를 확인하면 명소까지의 거리와 등록 가능 여부를 안내해 드립니다.'); return; }
+    const spot = getCurrentSpot(); if (!spot || !elements.btnOpenUpload || !elements.btnUploadLabel) return; elements.btnOpenUpload.classList.remove('state-ready', 'state-locked', 'state-unknown');
+    if (!state.userCoords) { elements.btnOpenUpload.classList.add('state-unknown'); elements.btnUploadLabel.textContent = '내 위치 확인 후 현장 등록하기'; setUploadDistanceNotice('내 위치를 확인하면 명소까지의 거리와 등록 가능 여부를 안내해 드립니다.'); return; }
     const status = getNearestPointStatus(spot), distance = status ? status.distanceMeters : null, pointName = status && status.point ? status.point.name : '가장 가까운 촬영 지점', radius = status ? status.radius : 500;
     if (status && status.withinAnyPoint) { elements.btnOpenUpload.classList.add('state-ready'); elements.btnUploadLabel.textContent = '현장 사진 등록하기'; setUploadDistanceNotice(`가장 가까운 지점(${pointName})까지 ${global.UploadValidator.formatDistance(distance)}입니다. 촬영 지점 반경 안에 있습니다.`); }
     else { const text = distance === null ? '거리 확인 불가' : global.UploadValidator.formatDistance(distance); elements.btnOpenUpload.classList.add('state-locked'); elements.btnUploadLabel.textContent = `🔒 현장까지 ${text} · 도착하면 등록 가능`; setUploadDistanceNotice(distance === null ? `현재 위치와 ${spot.name}의 촬영 지점 사이의 거리를 확인할 수 없습니다. 위치를 다시 확인해 주세요.` : `현재 가장 가까운 지점(${pointName})에서 ${text} 떨어져 있어요. 반경 ${radius}m 이내에 도착하면 사진을 등록할 수 있습니다.`); }

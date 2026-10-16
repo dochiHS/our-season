@@ -130,6 +130,101 @@
           grid: createEmptyGrid()
         }
       ]
+    },
+    {
+      id: 'musimcheon',
+      name: '무심천 벚꽃길',
+      description: '봄이면 하천을 따라 벚꽃 터널이 이어지는 산책길',
+      operatingHours: '상시 개방',
+      parking: '현장 확인 예정',
+      safetyNotice: '자전거길과 함께 쓰는 구간이 있어 주의',
+      points: [
+        {
+          id: 'musimcheon-main',
+          name: '대표 위치',
+          lat: 36.640125,
+          lng: 127.482828,
+          radiusMeters: 500,
+          description: '무심천 벚꽃길 대표 촬영 지점',
+          grid: createEmptyGrid()
+        }
+      ]
+    },
+    {
+      id: 'cheongnamdae',
+      name: '청남대',
+      description: '대청호를 끼고 있는 옛 대통령 별장과 정원',
+      operatingHours: '09:00~18:00 (12~1월 17:00까지) · 월요일 휴관',
+      parking: '주차 가능 (유료)',
+      safetyNotice: '매표는 문 닫기 1시간 30분 전 마감',
+      points: [
+        {
+          id: 'cheongnamdae-main',
+          name: '대표 위치',
+          lat: 36.4628,
+          lng: 127.4918,
+          radiusMeters: 500,
+          description: '청남대 대표 촬영 지점',
+          grid: createEmptyGrid()
+        }
+      ]
+    },
+    {
+      id: 'munui-daecheongho',
+      name: '문의 대청호 일대',
+      description: '문의문화유산단지에서 내려다보는 대청호 풍경',
+      operatingHours: '현장 확인 예정',
+      parking: '현장 확인 예정',
+      safetyNotice: '현장 확인 예정',
+      points: [
+        {
+          id: 'munui-main',
+          name: '문의문화유산단지',
+          lat: 36.507112,
+          lng: 127.493718,
+          radiusMeters: 500,
+          description: '대청호가 보이는 문의문화유산단지 일대',
+          grid: createEmptyGrid()
+        }
+      ]
+    },
+    {
+      id: 'midongsan',
+      name: '미동산수목원',
+      description: '비 오는 날 숲길 분위기가 좋은 수목원',
+      operatingHours: '09:00~18:00 (11~2월 17:00까지) · 월요일 휴원',
+      parking: '주차 가능',
+      safetyNotice: '입장은 문 닫기 1시간 전까지',
+      points: [
+        {
+          id: 'midongsan-main',
+          name: '대표 위치',
+          lat: 36.627434,
+          lng: 127.668839,
+          radiusMeters: 500,
+          description: '미동산수목원 대표 촬영 지점',
+          grid: createEmptyGrid()
+        }
+      ]
+    },
+    {
+      id: 'munam-park',
+      name: '문암생태공원',
+      description: '습지와 숲길, 넓은 잔디밭이 있는 도심 생태공원',
+      operatingHours: '상시 개방',
+      parking: '현장 확인 예정',
+      safetyNotice: '현장 확인 예정',
+      points: [
+        {
+          id: 'munam-main',
+          name: '대표 위치',
+          lat: 36.674549,
+          lng: 127.447817,
+          radiusMeters: 500,
+          description: '문암생태공원 대표 촬영 지점',
+          grid: createEmptyGrid()
+        }
+      ]
     }
   ];
 
