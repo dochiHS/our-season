@@ -41,27 +41,31 @@
   white-space: normal;
 }
 #home-screen .home-auth-login {
-  width: 100%;
+  width: 50%;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  margin: 0 auto;
   padding: 7px 14px;
   border: 1px solid #D9C49F;
   border-radius: var(--radius-lg);
   background: #F5EEDF;
   color: #705B3F;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
   text-decoration: none;
 }
-#home-screen .home-auth-login::after {
-  content: "사진을 올리려면 로그인해 주세요";
-  color: var(--text-secondary);
-  font-size: 10px;
+#home-screen .home-auth-login-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
   font-weight: 400;
+  text-align: center;
 }
+#home-screen .home-auth-login[hidden] + .home-auth-login-hint { display: none !important; }
 #home-screen .home-my-photos-button {
   min-height: 44px;
   border: 1px solid #D9C49F;
