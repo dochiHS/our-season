@@ -1,4 +1,4 @@
-/* 전체 화면 사진 확대 보기: global.FreePhotoViewer.open(photoUrl, caption) */
+/* 전체 화면 사진 확대 보기: global.FreePhotoViewer.open(photoUrl, caption, metadata) */
 (function (global) {
   'use strict';
 
@@ -6,6 +6,7 @@
   let stage = null;
   let image = null;
   let captionNode = null;
+  let headingNode = null;
   let isOpen = false;
   let scale = 1;
   let translateX = 0;
@@ -16,6 +17,28 @@
   let historyId = null;
   let bodyOverflow = '';
   let htmlOverflow = '';
+  let currentMetadata = null;
+
+  function notifyPhotoChanged() {
+    global.dispatchEvent(new CustomEvent('freephotochange', { detail: { photoUrl: image && image.src || '', metadata: currentMetadata } }));
+  }
+
+  function updateHeading(metadata) {
+    if (!headingNode) return;
+    const raw = metadata && metadata.heading;
+    const heading = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+    if (!Number.isInteger(heading) || heading < 0 || heading > 359) {
+      headingNode.textContent = '';
+      headingNode.hidden = true;
+      return;
+    }
+    const directions = ['북쪽', '북동쪽', '동쪽', '남동쪽', '남쪽', '남서쪽', '서쪽', '북서쪽'];
+    const label = global.PhotoHeading && typeof global.PhotoHeading.label === 'function'
+      ? global.PhotoHeading.label(heading)
+      : directions[Math.round(heading / 45) % 8];
+    headingNode.textContent = `${label}(${heading}°)을 보고 찍었어요`;
+    headingNode.hidden = false;
+  }
 
   function ensureOverlay() {
     if (overlay) return;
@@ -25,11 +48,13 @@
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', '사진 크게 보기');
     overlay.hidden = true;
-    overlay.innerHTML = '<button class="free-photo-viewer-close" type="button" aria-label="닫기"></button><div class="free-photo-viewer-stage"><img class="free-photo-viewer-image" alt="" draggable="false"><p class="free-photo-viewer-caption"></p></div>';
+    overlay.innerHTML = '<button class="free-photo-viewer-close" type="button" aria-label="닫기"></button><div class="free-photo-viewer-stage"><img class="free-photo-viewer-image" alt="" draggable="false"><p class="free-photo-viewer-heading" hidden></p><p class="free-photo-viewer-caption"></p></div>';
     document.body.appendChild(overlay);
     stage = overlay.querySelector('.free-photo-viewer-stage');
     image = overlay.querySelector('.free-photo-viewer-image');
+    headingNode = overlay.querySelector('.free-photo-viewer-heading');
     captionNode = overlay.querySelector('.free-photo-viewer-caption');
+    headingNode.style.cssText = 'position:absolute;right:16px;bottom:max(49px,calc(env(safe-area-inset-bottom) + 41px));left:16px;margin:0;color:#fff;font-size:12px;line-height:1.5;text-align:center;text-shadow:0 1px 5px rgba(0,0,0,.8);pointer-events:none;';
     overlay.querySelector('.free-photo-viewer-close').addEventListener('click', () => close(true));
     overlay.addEventListener('click', event => {
       if (Date.now() < suppressClickUntil) return;
@@ -61,18 +86,20 @@
   function onPopState(event) {
     const marker = stateMarker(event.state);
     if (marker && marker.id === historyId) {
-      if (!isOpen) activate(marker.photoUrl, marker.caption, false, marker.id);
+      if (!isOpen) activate(marker.photoUrl, marker.caption, false, marker.id, marker.metadata);
       return;
     }
     if (isOpen) deactivate();
   }
 
-  function activate(photoUrl, caption, pushEntry, id) {
+  function activate(photoUrl, caption, pushEntry, id, metadata) {
     ensureOverlay();
     historyId = id || historyId || `free-photo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     image.src = photoUrl || '';
-    image.alt = caption || '우리 동네 기록 사진';
+    image.alt = caption || '사진';
     captionNode.textContent = caption || '';
+    currentMetadata = metadata || null;
+    updateHeading(currentMetadata);
     scale = 1;
     translateX = 0;
     translateY = 0;
@@ -88,9 +115,10 @@
     if (pushEntry) {
       const oldState = global.history.state;
       const nextState = oldState && typeof oldState === 'object' ? { ...oldState } : {};
-      nextState.__freePhotoViewer = { id: historyId, photoUrl: photoUrl || '', caption: caption || '' };
+      nextState.__freePhotoViewer = { id: historyId, photoUrl: photoUrl || '', caption: caption || '', metadata: metadata || null };
       global.history.pushState(nextState, '', global.location.href);
     }
+    notifyPhotoChanged();
   }
 
   function deactivate() {
@@ -102,6 +130,7 @@
     image.removeAttribute('src');
     document.body.style.overflow = bodyOverflow;
     document.documentElement.style.overflow = htmlOverflow;
+    notifyPhotoChanged();
   }
 
   function close(goBack) {
@@ -175,7 +204,6 @@
 
   function onTouchStart(event) {
     if (!isOpen) return;
-    // 닫기 버튼 터치는 가로채지 않아야 확대 중에도 버튼이 눌린다.
     if (event.target && event.target.closest && event.target.closest('.free-photo-viewer-close')) {
       gesture = null;
       return;
@@ -252,29 +280,32 @@
     gesture = event.touches.length ? { type: 'multitouch-ended' } : null;
   }
 
-  function open(photoUrl, caption) {
+  function open(photoUrl, caption, metadata) {
     if (isOpen) {
       image.src = photoUrl || '';
-      image.alt = caption || '우리 동네 기록 사진';
+      image.alt = caption || '사진';
       captionNode.textContent = caption || '';
+      currentMetadata = metadata || null;
+      updateHeading(currentMetadata);
       scale = 1;
       translateX = 0;
       translateY = 0;
       updateTransform();
       const marker = stateMarker(global.history.state);
       if (marker && marker.id === historyId) {
-        const state = { ...global.history.state, __freePhotoViewer: { id: historyId, photoUrl: photoUrl || '', caption: caption || '' } };
+        const state = { ...global.history.state, __freePhotoViewer: { id: historyId, photoUrl: photoUrl || '', caption: caption || '', metadata: currentMetadata } };
         global.history.replaceState(state, '', global.location.href);
       }
+      notifyPhotoChanged();
       return;
     }
     const id = `free-photo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     historyId = id;
     const oldState = global.history.state;
     const nextState = oldState && typeof oldState === 'object' ? { ...oldState } : {};
-    nextState.__freePhotoViewer = { id, photoUrl: photoUrl || '', caption: caption || '' };
+    nextState.__freePhotoViewer = { id, photoUrl: photoUrl || '', caption: caption || '', metadata: metadata || null };
     global.history.pushState(nextState, '', global.location.href);
-    activate(photoUrl, caption, false, id);
+    activate(photoUrl, caption, false, id, metadata);
   }
 
   global.FreePhotoViewer = Object.freeze({ open });

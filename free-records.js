@@ -127,6 +127,24 @@
     return [seasonNames[row.season] || '계절 미상', timeNames[row.time_of_day] || '시간 미상', weather];
   }
 
+  function headingLabel(row) {
+    const value = row && row.heading !== null && row.heading !== undefined && row.heading !== '' ? Number(row.heading) : NaN;
+    if (!Number.isInteger(value) || value < 0 || value > 359) return null;
+    const direction = global.PhotoHeading && typeof global.PhotoHeading.label === 'function'
+      ? global.PhotoHeading.label(value)
+      : ['북쪽', '북동쪽', '동쪽', '남동쪽', '남쪽', '남서쪽', '서쪽', '북서쪽'][Math.round(value / 45) % 8];
+    return `${direction}(${value}°)을 보고 찍었어요`;
+  }
+
+  function openFreePhoto(row) {
+    if (!global.FreePhotoViewer) return;
+    global.FreePhotoViewer.open(row.photoUrl, `${row.place_name || ''} · ${labelKey(key(row))}`, {
+      heading: row.heading,
+      taken_at: row.taken_at,
+      created_at: row.created_at
+    });
+  }
+
   function renderRecords() {
     list.replaceChildren();
     if (loadFailed) { const p = document.createElement('p'); p.className = 'free-records-message is-error'; p.textContent = '기록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요'; list.appendChild(p); return; }
@@ -138,7 +156,7 @@
       if (row.photoUrl) {
         const image = document.createElement('img'); image.className = 'free-record-photo'; image.src = row.photoUrl;
         image.alt = row.place_name || '우리 동네 기록 사진'; image.loading = 'lazy'; image.setAttribute('role', 'button'); image.setAttribute('aria-label', '사진 크게 보기'); image.style.cursor = 'zoom-in';
-        image.addEventListener('click', () => global.FreePhotoViewer && global.FreePhotoViewer.open(row.photoUrl, `${row.place_name || ''} · ${labelKey(key(row))}`));
+        image.addEventListener('click', () => openFreePhoto(row));
         card.appendChild(image);
       }
       const body = document.createElement('div'); body.className = 'free-record-card-body';
@@ -155,7 +173,10 @@
       const tagList = document.createElement('div'); tagList.className = 'free-record-tags'; tagsFor(row).forEach(text => addTag(tagList, text));
       const memo = document.createElement('p'); memo.className = 'free-record-memo'; memo.textContent = row.memo || ''; memo.hidden = !row.memo;
       const byline = document.createElement('p'); byline.className = 'free-record-credit'; byline.textContent = `${row.nickname || '익명'} · ${dateText(row.taken_at || row.created_at)}`;
-      body.append(name, cityRow, tagList, memo, byline); card.appendChild(body); list.appendChild(card);
+      const heading = headingLabel(row);
+      body.append(name, cityRow, tagList, memo, byline);
+      if (heading) { const headingLine = document.createElement('p'); headingLine.className = 'free-record-heading'; headingLine.textContent = heading; body.appendChild(headingLine); }
+      card.appendChild(body); list.appendChild(card);
     });
   }
 
@@ -191,7 +212,7 @@
     if (!row || !point) { renderMissingPlace(); return; }
     if (row.photoUrl) {
       const image = document.createElement('img'); image.className = 'free-place-photo'; image.src = row.photoUrl; image.alt = row.place_name || '우리 동네 기록 사진';
-      image.addEventListener('click', () => global.FreePhotoViewer && global.FreePhotoViewer.open(row.photoUrl, `${row.place_name || ''} · ${locationName(row)}`)); content.appendChild(image);
+      image.addEventListener('click', () => openFreePhoto(row)); content.appendChild(image);
     }
     const details = document.createElement('div'); details.className = 'free-place-details';
     const title = document.createElement('h2'); title.className = 'free-place-place-name'; title.textContent = row.place_name || '이름 없는 장소';
@@ -199,6 +220,8 @@
     const tagList = document.createElement('div'); tagList.className = 'free-record-tags free-place-tags'; tagsFor(row).forEach(text => addTag(tagList, text));
     const byline = document.createElement('p'); byline.className = 'free-record-credit'; byline.textContent = `${row.nickname || '익명'} · ${dateText(row.taken_at || row.created_at)}`;
     details.append(title, city, tagList, byline);
+    const heading = headingLabel(row);
+    if (heading) { const headingLine = document.createElement('p'); headingLine.className = 'free-record-heading'; headingLine.textContent = heading; details.appendChild(headingLine); }
     if (row.memo) { const memo = document.createElement('p'); memo.className = 'free-record-memo'; memo.textContent = row.memo; details.appendChild(memo); }
     content.appendChild(details);
     const map = document.createElement('div'); map.id = 'free-place-map'; map.className = 'free-place-map'; map.setAttribute('role', 'application'); map.setAttribute('aria-label', '대략적인 사진 촬영 위치 지도'); content.appendChild(map);

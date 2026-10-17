@@ -18,7 +18,7 @@
     if (!appContainer) return null;
     const section = document.createElement('section');
     section.id = 'season-screen'; section.className = 'screen season-screen'; section.setAttribute('aria-label', '계절 펼침 화면'); section.hidden = true;
-    section.innerHTML = '<header class="season-topbar"><button class="back-button season-back-button" type="button" aria-label="명소 화면으로 돌아가기">‹</button><div class="season-heading"><h1 class="season-heading-title"></h1><p class="season-heading-point"></p></div><span class="season-topbar-spacer" aria-hidden="true"></span></header><nav class="season-tabs" role="tablist" aria-label="계절 선택"></nav><main class="season-view-content"><div class="season-photo-area"><div class="season-photo-stack"></div><div class="season-photo-meta"><p class="season-photo-tags"></p><p class="season-photo-memo"></p><p class="season-photo-credit"></p><p class="season-reference-notice" hidden></p></div></div><div class="season-photo-navigation" aria-label="사진 탐색"><button class="season-nav-button season-previous" type="button" aria-label="이전 사진">‹</button><span class="season-photo-count" aria-live="polite"></span><button class="season-nav-button season-next" type="button" aria-label="다음 사진">›</button></div><section class="other-seasons-section"><h2>같은 자리, 다른 계절</h2><div class="other-seasons-grid"></div></section></main>';
+    section.innerHTML = '<header class="season-topbar"><button class="back-button season-back-button" type="button" aria-label="명소 화면으로 돌아가기">‹</button><div class="season-heading"><h1 class="season-heading-title"></h1><p class="season-heading-point"></p></div><span class="season-topbar-spacer" aria-hidden="true"></span></header><nav class="season-tabs" role="tablist" aria-label="계절 선택"></nav><main class="season-view-content"><div class="season-photo-area"><div class="season-photo-stack"></div><div class="season-photo-meta"><p class="season-photo-tags"></p><p class="season-photo-memo"></p><p class="season-photo-credit"></p><p class="season-photo-heading-line" hidden></p><p class="season-reference-notice" hidden></p></div></div><div class="season-photo-navigation" aria-label="사진 탐색"><button class="season-nav-button season-previous" type="button" aria-label="이전 사진">‹</button><span class="season-photo-count" aria-live="polite"></span><button class="season-nav-button season-next" type="button" aria-label="다음 사진">›</button></div><section class="other-seasons-section"><h2>같은 자리, 다른 계절</h2><div class="other-seasons-grid"></div></section></main>';
     appContainer.appendChild(section);
     section.querySelector('.season-back-button').addEventListener('click', () => { const route = routeFromHash(); if (route.spotId) navigate(`#/spot/${encodeURIComponent(route.spotId)}`); });
     section.querySelector('.season-previous').addEventListener('click', () => showSeasonPhoto(-1));
@@ -50,7 +50,7 @@
     match = hash.match(/^#\/spot\/([^/?]+)\/season\/(spring|summer|autumn|winter)(?:\?(.+))?$/);
     if (match) { try { return { screen: 'season', spotId: decodeURIComponent(match[1]), season: match[2], params: new URLSearchParams(match[3] || '') }; } catch (error) { return { screen: 'home' }; } }
     match = hash.match(/^#\/spot\/([^/?]+)\/compass(?:\?(.+))?$/);
-    if (match) { try { return { screen: 'compass', spotId: decodeURIComponent(match[1]), pointId: new URLSearchParams(match[2] || '').get('point') || '' }; } catch (error) { return { screen: 'home' }; } }
+    if (match) { try { const params = new URLSearchParams(match[2] || ''); return { screen: 'compass', spotId: decodeURIComponent(match[1]), pointId: params.get('point') || '', heading: params.get('heading') || null }; } catch (error) { return { screen: 'home' }; } }
     match = hash.match(/^#\/spot\/([^/?]+)(?:\?(.+))?$/);
     if (match) { try { return { screen: 'detail', spotId: decodeURIComponent(match[1]), params: new URLSearchParams(match[2] || '') }; } catch (error) { return { screen: 'home' }; } }
     return { screen: 'home' };
@@ -107,16 +107,27 @@
     const tabs = seasonScreen.querySelector('.season-tabs'); tabs.replaceChildren();
     seasons.forEach(season => { const tab = document.createElement('button'); tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', season === route.season ? 'true' : 'false'); tab.className = `season-tab${season === route.season ? ' is-active' : ''}`; tab.textContent = seasonNames[season]; tab.addEventListener('click', () => navigate(seasonHash(spot.id, season, { pointId: point && point.id, ...filters }))); tabs.appendChild(tab); });
     const stack = seasonScreen.querySelector('.season-photo-stack'); stack.replaceChildren();
-    const metaTags = seasonScreen.querySelector('.season-photo-tags'), memo = seasonScreen.querySelector('.season-photo-memo'), credit = seasonScreen.querySelector('.season-photo-credit'), referenceNotice = seasonScreen.querySelector('.season-reference-notice');
+    const metaTags = seasonScreen.querySelector('.season-photo-tags'), memo = seasonScreen.querySelector('.season-photo-memo'), credit = seasonScreen.querySelector('.season-photo-credit'), headingLine = seasonScreen.querySelector('.season-photo-heading-line'), referenceNotice = seasonScreen.querySelector('.season-reference-notice');
     const count = seasonScreen.querySelector('.season-photo-count'), previous = seasonScreen.querySelector('.season-previous'), next = seasonScreen.querySelector('.season-next');
-    if (!photos.length) { const empty = document.createElement('div'); empty.className = 'season-photo-empty'; empty.textContent = '이 계절 사진이 아직 없어요. 첫 사진을 올려 주세요'; stack.appendChild(empty); metaTags.textContent = ''; memo.textContent = ''; memo.hidden = true; credit.textContent = ''; referenceNotice.textContent = ''; referenceNotice.hidden = true; count.textContent = '0 / 0'; previous.disabled = true; next.disabled = true; }
+    if (!photos.length) { const empty = document.createElement('div'); empty.className = 'season-photo-empty'; empty.textContent = '이 계절 사진이 아직 없어요. 첫 사진을 올려 주세요'; stack.appendChild(empty); metaTags.textContent = ''; memo.textContent = ''; memo.hidden = true; credit.textContent = ''; headingLine.replaceChildren(); headingLine.hidden = true; referenceNotice.textContent = ''; referenceNotice.hidden = true; count.textContent = '0 / 0'; previous.disabled = true; next.disabled = true; }
     else {
       const currentIndex = Math.min(Math.max(state.photoIndex || 0, 0), photos.length - 1); state.photoIndex = currentIndex;
       for (let offset = Math.min(2, photos.length - 1); offset >= 1; offset -= 1) { const backIndex = (currentIndex + offset) % photos.length, back = document.createElement('span'); back.className = `season-photo-back season-photo-back-${offset === 1 ? 'one' : 'two'}`; back.setAttribute('aria-hidden', 'true'); const backImage = document.createElement('img'); backImage.className = 'season-photo-back-image'; backImage.src = isReference ? photos[backIndex].image : photos[backIndex].dataUrl; backImage.alt = ''; backImage.loading = 'lazy'; back.appendChild(backImage); stack.appendChild(back); }
       const photoCard = document.createElement('div'); photoCard.className = 'season-photo-card'; const image = document.createElement('img'); image.src = isReference ? photos[currentIndex].image : photos[currentIndex].dataUrl; image.alt = `${spot.name} ${seasonNames[route.season]} 사진 ${currentIndex + 1}`; image.loading = 'lazy'; photoCard.appendChild(image); stack.appendChild(photoCard);
-      const photo = photos[currentIndex]; metaTags.replaceChildren();
+      const photo = photos[currentIndex]; metaTags.replaceChildren(); headingLine.replaceChildren(); headingLine.hidden = true;
       if (isReference) { const tag = document.createElement('span'); tag.className = 'season-photo-tag season-reference-tag'; tag.textContent = '참고 사진'; metaTags.appendChild(tag); memo.textContent = ''; memo.hidden = true; credit.textContent = `${global.ReferencePhotos.creditOf(photo)} · ${photo.month} 촬영`; referenceNotice.textContent = '이 계절 사진이 아직 없어 관광공사 사진을 보여 드려요. 직접 찍은 사진을 올려 주세요.'; referenceNotice.hidden = false; }
-      else { const timeLabel = timeNames[photo.timeOfDay] || '시간 미상'; [timeLabel, labelWeather(photo)].forEach(text => { const tag = document.createElement('span'); tag.className = 'season-photo-tag'; tag.textContent = text; metaTags.appendChild(tag); }); memo.textContent = photo.memo || ''; memo.hidden = !photo.memo; credit.textContent = `${photo.nickname || '익명'} · ${formatPhotoDate(photo)}`; referenceNotice.textContent = ''; referenceNotice.hidden = true; }
+      else {
+        const timeLabel = timeNames[photo.timeOfDay] || '시간 미상'; [timeLabel, labelWeather(photo)].forEach(text => { const tag = document.createElement('span'); tag.className = 'season-photo-tag'; tag.textContent = text; metaTags.appendChild(tag); });
+        memo.textContent = photo.memo || ''; memo.hidden = !photo.memo; credit.textContent = `${photo.nickname || '익명'} · ${formatPhotoDate(photo)}`; referenceNotice.textContent = ''; referenceNotice.hidden = true;
+        const headingValue = photo.heading === null || photo.heading === undefined || photo.heading === '' ? NaN : Number(photo.heading);
+        if (Number.isInteger(headingValue) && headingValue >= 0 && headingValue <= 359) {
+          const direction = global.PhotoHeading && typeof global.PhotoHeading.label === 'function' ? global.PhotoHeading.label(headingValue) : ['북쪽', '북동쪽', '동쪽', '남동쪽', '남쪽', '남서쪽', '서쪽', '북서쪽'][Math.round(headingValue / 45) % 8];
+          const text = document.createElement('span'); text.textContent = `${direction}(${headingValue}°)을 보고 찍었어요`;
+          const compassButton = document.createElement('button'); compassButton.type = 'button'; compassButton.className = 'season-photo-compass-button'; compassButton.textContent = '나침반으로 이 방향 찾기';
+          compassButton.addEventListener('click', () => { global.location.hash = `#/spot/${encodeURIComponent(spot.id)}/compass?point=${encodeURIComponent(photo.pointId || '')}&heading=${headingValue}`; });
+          headingLine.append(text, compassButton); headingLine.hidden = false;
+        }
+      }
       count.textContent = `${currentIndex + 1} / ${photos.length}`; previous.disabled = currentIndex === 0; next.disabled = currentIndex === photos.length - 1;
     }
     const tiles = seasonScreen.querySelector('.other-seasons-grid'); tiles.replaceChildren();
@@ -154,7 +165,7 @@
       else if (!cameFromSeason) state.lastSeasonContext = null;
       if (title) title.textContent = spot.name; global.setTimeout(() => { global.dispatchEvent(new Event('resize')); if (global.SpotMap) global.SpotMap.refresh(true); }, 0);
     }
-    if (isCompass) { const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId); if (!spot) { navigate('#/spots', false, true); return; } global.App.selectSpot(route.spotId); if (global.Compass) global.Compass.open(route.spotId, route.pointId); }
+    if (isCompass) { const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId); if (!spot) { navigate('#/spots', false, true); return; } global.App.selectSpot(route.spotId); if (global.Compass) global.Compass.open(route.spotId, route.pointId, route.heading); }
     if (isSeason) { const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId); if (!spot) { navigate('#/spots', false, true); return; } global.App.selectSpot(route.spotId); restoreSeasonContext(route); state.photoIndex = 0; renderSeasonScreen(route); }
     if (isHome || isList || isLocal || isLocalPlace || route.screen === 'my-photos') state.lastSeasonContext = null;
     state.activeScreen = route.screen;
