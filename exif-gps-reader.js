@@ -1,8 +1,3 @@
-/**
- * exif-gps-reader.js
- * JPEG/TIFF 이미지 파일에서 EXIF GPS 좌표와 촬영 시각(DateTimeOriginal)을 추출합니다.
- * 일반 스크립트 방식이며 공개 API는 globalThis.ExifGpsReader에서 사용할 수 있습니다.
- */
 (function (global) {
   'use strict';
 
@@ -11,7 +6,7 @@
       const buffer = await file.arrayBuffer();
       const dataView = new DataView(buffer);
       if (dataView.byteLength < 4 || dataView.getUint16(0, false) !== 0xFFD8) {
-        return { success: false, reason: 'JPEG 형식이 아니거나 손상된 파일입니다.', takenAt: null };
+        return { success: false, reason: 'JPEG 형식이 아니거나 손상된 파일입니다.', takenAt: null, imgDirection: null };
       }
 
       let offset = 2;
@@ -47,7 +42,8 @@
               return {
                 success: false,
                 reason: '사진에 GPS 위치 정보가 포함되어 있지 않습니다.',
-                takenAt: parsed.takenAt || null
+                takenAt: parsed.takenAt || null,
+                imgDirection: parsed.imgDirection ?? null
               };
             }
           }
@@ -55,9 +51,9 @@
         offset += segmentLength;
       }
 
-      return { success: false, reason: '사진에 EXIF 메타데이터가 없습니다.', takenAt: null };
+      return { success: false, reason: '사진에 EXIF 메타데이터가 없습니다.', takenAt: null, imgDirection: null };
     } catch (error) {
-      return { success: false, reason: `사진 메타데이터 추출 중 오류 발생: ${error.message}`, takenAt: null };
+      return { success: false, reason: `사진 메타데이터 추출 중 오류 발생: ${error.message}`, takenAt: null, imgDirection: null };
     }
   }
 
@@ -94,7 +90,7 @@
     // DateTimeOriginal만 촬영 시각으로 사용합니다. 일반 DateTime은 파일 수정 시각일 수 있습니다.
     const takenAt = parseExifDateTime(originalDate, subsecond, offsetTime);
     const coordinates = gpsOffset === null
-      ? { latitude: null, longitude: null }
+      ? { latitude: null, longitude: null, imgDirection: null }
       : parseGpsIfd(dataView, tiffStart, gpsOffset, littleEndian);
 
     return { ...coordinates, takenAt };
@@ -125,7 +121,8 @@
   }
 
   function getEntryDataOffset(dataView, tiffStart, entry, littleEndian) {
-    const byteLength = entry.type === 2 ? entry.count : entry.count * 4;
+    const typeSizes = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
+    const byteLength = (typeSizes[entry.type] || 0) * entry.count;
     if (byteLength <= 4) return entry.offset + 8;
     return tiffStart + dataView.getUint32(entry.offset + 8, littleEndian);
   }
@@ -162,11 +159,12 @@
 
   function parseGpsIfd(dataView, tiffStart, relativeOffset, littleEndian) {
     const entries = readIfdEntries(dataView, tiffStart, relativeOffset, littleEndian);
-    if (!entries) return { latitude: null, longitude: null };
+    if (!entries) return { latitude: null, longitude: null, imgDirection: null };
     let latRef = 'N';
     let lonRef = 'E';
     let latDms = null;
     let lonDms = null;
+    let imgDirection = null;
 
     for (const entry of entries) {
       const valueOffset = getEntryDataOffset(dataView, tiffStart, entry, littleEndian);
@@ -178,15 +176,33 @@
         lonRef = String.fromCharCode(dataView.getUint8(valueOffset));
       } else if (entry.tag === 0x0004) {
         lonDms = readRationalCoordinates(dataView, valueOffset, littleEndian);
+      } else if (entry.tag === 0x0011) {
+        imgDirection = readGpsDirection(dataView, tiffStart, entry, littleEndian);
       }
     }
 
-    if (!latDms || !lonDms) return { latitude: null, longitude: null };
+    if (!latDms || !lonDms) return { latitude: null, longitude: null, imgDirection };
     let latitude = convertDmsToDecimal(latDms);
     let longitude = convertDmsToDecimal(lonDms);
     if (latRef === 'S') latitude = -latitude;
     if (lonRef === 'W') longitude = -longitude;
-    return { latitude, longitude };
+    return { latitude, longitude, imgDirection };
+  }
+
+  function readGpsDirection(dataView, tiffStart, entry, littleEndian) {
+    if (entry.type !== 5 || entry.count < 1) return null;
+    try {
+      const offset = getEntryDataOffset(dataView, tiffStart, entry, littleEndian);
+      if (offset < 0 || offset + 8 > dataView.byteLength) return null;
+      const numerator = dataView.getUint32(offset, littleEndian);
+      const denominator = dataView.getUint32(offset + 4, littleEndian);
+      if (denominator === 0) return null;
+      const degrees = numerator / denominator;
+      if (!Number.isFinite(degrees) || degrees < 0 || degrees > 360) return null;
+      return Math.round(degrees) % 360;
+    } catch (error) {
+      return null;
+    }
   }
 
   function readRationalCoordinates(dataView, offset, littleEndian) {

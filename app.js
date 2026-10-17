@@ -61,14 +61,14 @@
     const client = getSupabaseClient();
     if (!client) { setAppNotice('Supabase 설정을 확인해 주세요. supabase-config.js에 URL과 공개 키를 입력해야 합니다.', 'error'); return; }
     try {
-      const { data, error } = await client.from('season_photos').select('kind, spot_id, point_id, season, time_of_day, weather, weather_note, memo, nickname, photo_path, created_at, taken_at').eq('status', 'approved').order('created_at', { ascending: false });
+      const { data, error } = await client.from('season_photos').select('kind, spot_id, point_id, season, time_of_day, weather, weather_note, memo, nickname, photo_path, created_at, taken_at, heading').eq('status', 'approved').order('created_at', { ascending: false });
       if (error) throw error;
       state.approvedPhotos = (data || []).flatMap(row => {
         const kind = typeof row.kind === 'string' ? row.kind.trim() : '';
         if (kind && kind !== 'spot') return [];
         if (!global.SpotData.TIME_OF_DAY.includes(row.time_of_day)) return [];
         const { data: publicData } = client.storage.from('season-photos').getPublicUrl(row.photo_path);
-        return [{ dataUrl: publicData.publicUrl, memo: row.memo || '', nickname: row.nickname || '', spotId: row.spot_id, pointId: row.point_id, season: row.season, timeOfDay: row.time_of_day, weather: row.weather, weatherNote: row.weather_note || '', takenAt: row.taken_at || '', uploadedAt: row.created_at || row.taken_at || '' }];
+        return [{ dataUrl: publicData.publicUrl, memo: row.memo || '', nickname: row.nickname || '', spotId: row.spot_id, pointId: row.point_id, season: row.season, timeOfDay: row.time_of_day, weather: row.weather, weatherNote: row.weather_note || '', takenAt: row.taken_at || '', uploadedAt: row.created_at || row.taken_at || '', heading: row.heading ?? null }];
       });
       refreshSpots(); renderTabs(); renderSummaryCard(); renderPointTabs(); renderMatrix(); notifySpotStateChange();
     } catch (error) { setAppNotice(`승인된 사진을 불러오지 못했습니다. ${error.message || ''}`.trim(), 'error'); }
@@ -298,7 +298,7 @@
       if (!user) user = await global.OurAuth.requireLogin();
       if (!user) { setFeedback('status-error', '로그인이 필요해요.', '로그인이 풀렸어요. 다시 로그인한 뒤 등록해 주세요.'); return; }
       const { error: uploadError } = await client.storage.from('season-photos').upload(photoPath, compressed.blob, { cacheControl: '3600', contentType: 'image/jpeg', upsert: false }); if (uploadError) throw uploadError;
-      const { error: insertError } = await client.from('season_photos').insert({ spot_id: spot.id, point_id: validation.pointId, season, time_of_day: timeOfDay, weather, weather_note: weather === 'other' ? (weatherNote || null) : null, memo: memo || null, nickname, photo_path: photoPath, taken_at: capturedAt || new Date().toISOString() }); if (insertError) throw insertError;
+      const { error: insertError } = await client.from('season_photos').insert({ spot_id: spot.id, point_id: validation.pointId, season, time_of_day: timeOfDay, weather, weather_note: weather === 'other' ? (weatherNote || null) : null, memo: memo || null, nickname, photo_path: photoPath, taken_at: capturedAt || new Date().toISOString(), heading: global.PhotoHeading ? global.PhotoHeading.headingOf(elements.uploadForm) : null }); if (insertError) throw insertError;
       closeUploadModal(); resetUploadForm(); setAppNotice('등록됐어요. 운영자 승인 후 공개됩니다.', 'success');
     } catch (error) { setFeedback('status-error', '사진을 등록하지 못했습니다.', error.message || '위치 확인 또는 사진 처리 중 오류가 발생했습니다.'); }
     finally { isSubmitting = false; updateSubmitAvailability(); }

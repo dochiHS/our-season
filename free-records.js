@@ -34,7 +34,7 @@
     const db = client();
     if (!db) throw new Error('Supabase unavailable');
     const result = await db.from('season_photos')
-      .select('id, city, district, place_name, season, time_of_day, weather, weather_note, memo, nickname, photo_path, taken_at, created_at, approx_lat, approx_lng')
+      .select('id, city, district, place_name, season, time_of_day, weather, weather_note, memo, nickname, photo_path, taken_at, created_at, approx_lat, approx_lng, heading')
       .eq('status', 'approved').eq('kind', 'free').order('created_at', { ascending: false });
     if (result.error) throw result.error;
     return (result.data || []).filter(row => row && row.city).map(row => {

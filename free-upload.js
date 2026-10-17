@@ -274,7 +274,8 @@
         taken_at: selectedTakenAt || new Date().toISOString(),
         approx_lat: approxLat,
         approx_lng: approxLng,
-        status: 'pending'
+        status: 'pending',
+        heading: global.PhotoHeading ? global.PhotoHeading.headingOf(form) : null
       });
       if (insertError) throw insertError;
 
