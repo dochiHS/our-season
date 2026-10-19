@@ -1,0 +1,51 @@
+.home-pwa-area {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.home-pwa-install-button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: #F5EEDF;
+  color: #705B3F;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-pwa-ios-notice {
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  background: #F5EEDF;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.home-pwa-ios-notice[hidden],
+.home-pwa-install-button[hidden] {
+  display: none !important;
+}
+
+.home-pwa-ios-dismiss {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}

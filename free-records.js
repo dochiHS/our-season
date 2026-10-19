@@ -15,7 +15,7 @@
     screen.setAttribute('aria-label', '우리 동네 기록'); screen.hidden = true;
     screen.innerHTML = '<header class="screen-topbar free-records-topbar"><button class="back-button free-records-back" type="button" aria-label="첫 화면으로 돌아가기">‹</button><h1 class="free-records-title">우리 동네 기록</h1><span class="free-records-topbar-spacer" aria-hidden="true"></span></header><nav class="free-records-filters" aria-label="기록 필터"><div class="free-records-filter-row free-records-city-filter" role="group" aria-label="시·군 선택"></div><div class="free-records-filter-row free-records-season-filter" role="group" aria-label="계절 선택"></div></nav><main class="free-record-list" aria-live="polite"></main><div class="free-records-bottom-bar"><button class="btn-submit-upload free-records-upload-button" type="button"><img src="my-photos-icon.png" alt="" aria-hidden="true" class="ui-icon ui-icon-22"> 우리 동네 기록 올리기</button></div>';
     app.appendChild(screen); list = screen.querySelector('.free-record-list');
-    screen.querySelector('.free-records-back').addEventListener('click', () => { global.location.hash = '#/'; });
+    screen.querySelector('.free-records-back').addEventListener('click', () => { if (global.Screens) global.Screens.goBack('#/'); else global.location.hash = '#/'; });
     screen.querySelector('.free-records-upload-button').addEventListener('click', () => global.FreeUpload && global.FreeUpload.open());
 
     placeScreen = document.createElement('section');
@@ -74,8 +74,10 @@
 
   function updateHash() {
     const hash = currentListHash();
-    global.location.hash = hash;
-    if (global.location.hash === hash) renderFiltersAndRecords();
+    const currentState = global.history.state && typeof global.history.state === 'object' ? global.history.state : {};
+    global.history.replaceState(currentState, '', `${global.location.pathname}${global.location.search}${hash}`);
+    lastListHash = hash;
+    renderFiltersAndRecords();
   }
 
   function chip(parent, text, value, active, type) {
@@ -193,8 +195,7 @@
 
   function destroyMap() { if (placeMap) { placeMap.remove(); placeMap = null; } }
   function returnToList() {
-    const marker = global.history.state && global.history.state.__freeRecordsPlace;
-    if (marker && String(marker) === String(global.location.hash)) global.history.back();
+    if (global.Screens) global.Screens.goBack('#/local');
     else global.location.hash = lastListHash || '#/local';
   }
 
@@ -234,17 +235,7 @@
   }
 
   function prepareDirectNavigation() {
-    const currentUrl = `${global.location.pathname}${global.location.search}${global.location.hash}`;
-    if (pendingPlaceNavigation) {
-      pendingPlaceNavigation = false;
-      const state = global.history.state && typeof global.history.state === 'object' ? global.history.state : {};
-      global.history.replaceState({ ...state, __freeRecordsPlace: global.location.hash }, '', currentUrl);
-      return;
-    }
-    const listUrl = `${global.location.pathname}${global.location.search}${lastListHash || '#/local'}`;
-    const state = global.history.state && typeof global.history.state === 'object' ? global.history.state : {};
-    global.history.replaceState(state, '', listUrl);
-    global.history.pushState({ ...state, __freeRecordsPlace: global.location.hash }, '', currentUrl);
+    if (pendingPlaceNavigation) pendingPlaceNavigation = false;
   }
 
   async function renderPlace(id) {

@@ -241,7 +241,7 @@
     resetRotation();
     section.hidden = false; $('.compass-enable-button').textContent = '나침반 켜기';
     $('.compass-enable-button').onclick = enableCompass;
-    $('.compass-back').onclick = goToSpot;
+    $('.compass-back').onclick = goBackToSpot;
     $('.compass-upload-button').onclick = goToSpot;
     render();
     if (!global.navigator.geolocation) { onPositionError({ code: 1 }); return; }
@@ -250,6 +250,11 @@
     } catch (error) {
       onPositionError({ code: 1 });
     }
+  }
+  function goBackToSpot() {
+    const fallbackHash = `#/spot/${encodeURIComponent(spot.id)}?point=${encodeURIComponent(point.id)}`;
+    if (global.Screens && typeof global.Screens.goBack === 'function') global.Screens.goBack(fallbackHash);
+    else global.location.hash = fallbackHash;
   }
   function goToSpot() {
     if (global.Screens && typeof global.Screens.navigateSpot === 'function') global.Screens.navigateSpot(spot.id, point.id);

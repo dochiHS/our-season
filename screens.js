@@ -13,6 +13,9 @@
   const seasonScreen = createSeasonScreen();
   let seasonTouchStartX = null;
   let pileObserver = null;
+  let currentDepth = 0;
+  let pendingPopHash = null;
+  let pendingPopTimer = null;
 
   function createSeasonScreen() {
     if (!appContainer) return null;
@@ -20,7 +23,7 @@
     section.id = 'season-screen'; section.className = 'screen season-screen'; section.setAttribute('aria-label', '계절 펼침 화면'); section.hidden = true;
     section.innerHTML = '<header class="season-topbar"><button class="back-button season-back-button" type="button" aria-label="명소 화면으로 돌아가기">‹</button><div class="season-heading"><h1 class="season-heading-title"></h1><p class="season-heading-point"></p></div><span class="season-topbar-spacer" aria-hidden="true"></span></header><nav class="season-tabs" role="tablist" aria-label="계절 선택"></nav><main class="season-view-content"><div class="season-photo-area"><div class="season-photo-stack"></div><div class="season-photo-meta"><p class="season-photo-tags"></p><p class="season-photo-memo"></p><p class="season-photo-credit"></p><p class="season-photo-heading-line" hidden></p><p class="season-reference-notice" hidden></p></div></div><div class="season-photo-navigation" aria-label="사진 탐색"><button class="season-nav-button season-previous" type="button" aria-label="이전 사진">‹</button><span class="season-photo-count" aria-live="polite"></span><button class="season-nav-button season-next" type="button" aria-label="다음 사진">›</button></div><section class="other-seasons-section"><h2>같은 자리, 다른 계절</h2><div class="other-seasons-grid"></div></section></main>';
     appContainer.appendChild(section);
-    section.querySelector('.season-back-button').addEventListener('click', () => { const route = routeFromHash(); if (route.spotId) navigate(`#/spot/${encodeURIComponent(route.spotId)}`); });
+    section.querySelector('.season-back-button').addEventListener('click', () => { const route = routeFromHash(); if (route.spotId) goBack(`#/spot/${encodeURIComponent(route.spotId)}`); });
     section.querySelector('.season-previous').addEventListener('click', () => showSeasonPhoto(-1));
     section.querySelector('.season-next').addEventListener('click', () => showSeasonPhoto(1));
     const stack = section.querySelector('.season-photo-stack');
@@ -30,12 +33,27 @@
     return section;
   }
 
+  function stateObject() { const value = global.history.state; return value && typeof value === 'object' ? value : {}; }
+  function depthOf(value) { const depth = value && Number(value.__appDepth); return Number.isInteger(depth) && depth >= 0 ? depth : null; }
+  function replaceCurrent(hash, depth) {
+    const base = stateObject();
+    const next = { ...base, __appDepth: Number.isInteger(depth) && depth >= 0 ? depth : (depthOf(base) ?? currentDepth) };
+    global.history.replaceState(next, '', `${global.location.pathname}${global.location.search}${hash}`);
+    currentDepth = next.__appDepth;
+  }
   function navigate(hash, focusSearch, replace) {
     state.focusSearchOnShow = Boolean(focusSearch);
-    if (global.location.hash === hash) renderRoute();
-    else if (replace) global.history.replaceState(null, '', `${global.location.pathname}${global.location.search}${hash}`);
+    if (replace) {
+      replaceCurrent(hash);
+      renderRoute();
+    } else if (global.location.hash === hash) renderRoute();
     else global.location.hash = hash;
-    if (replace) renderRoute();
+  }
+  function goBack(fallbackHash) {
+    const depth = depthOf(stateObject());
+    currentDepth = depth === null ? 0 : depth;
+    if (currentDepth >= 1) global.history.back();
+    else navigate(fallbackHash || '#/', false, true);
   }
 
   function routeFromHash() {
@@ -105,7 +123,7 @@
     const seasons = global.SpotData.SEASONS || ['spring', 'summer', 'autumn', 'winter'], seasonNames = global.SpotData.SEASONS_KO || { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' }, timeNames = global.SpotData.TIME_OF_DAY_KO || { sunrise: '일출', day: '낮', sunset: '일몰', night: '밤' };
     seasonScreen.querySelector('.season-heading-title').textContent = spot.name; seasonScreen.querySelector('.season-heading-point').textContent = point ? point.name : '대표 지점';
     const tabs = seasonScreen.querySelector('.season-tabs'); tabs.replaceChildren();
-    seasons.forEach(season => { const tab = document.createElement('button'); tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', season === route.season ? 'true' : 'false'); tab.className = `season-tab${season === route.season ? ' is-active' : ''}`; tab.textContent = seasonNames[season]; tab.addEventListener('click', () => navigate(seasonHash(spot.id, season, { pointId: point && point.id, ...filters }))); tabs.appendChild(tab); });
+    seasons.forEach(season => { const tab = document.createElement('button'); tab.type = 'button'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', season === route.season ? 'true' : 'false'); tab.className = `season-tab${season === route.season ? ' is-active' : ''}`; tab.textContent = seasonNames[season]; tab.addEventListener('click', () => navigate(seasonHash(spot.id, season, { pointId: point && point.id, ...filters }), false, true)); tabs.appendChild(tab); });
     const stack = seasonScreen.querySelector('.season-photo-stack'); stack.replaceChildren();
     const metaTags = seasonScreen.querySelector('.season-photo-tags'), memo = seasonScreen.querySelector('.season-photo-memo'), credit = seasonScreen.querySelector('.season-photo-credit'), headingLine = seasonScreen.querySelector('.season-photo-heading-line'), referenceNotice = seasonScreen.querySelector('.season-reference-notice');
     const count = seasonScreen.querySelector('.season-photo-count'), previous = seasonScreen.querySelector('.season-previous'), next = seasonScreen.querySelector('.season-next');
@@ -124,7 +142,7 @@
           const direction = global.PhotoHeading && typeof global.PhotoHeading.label === 'function' ? global.PhotoHeading.label(headingValue) : ['북쪽', '북동쪽', '동쪽', '남동쪽', '남쪽', '남서쪽', '서쪽', '북서쪽'][Math.round(headingValue / 45) % 8];
           const text = document.createElement('span'); text.textContent = `${direction}(${headingValue}°)을 보고 찍었어요`;
           const compassButton = document.createElement('button'); compassButton.type = 'button'; compassButton.className = 'season-photo-compass-button'; compassButton.textContent = '나침반으로 이 방향 찾기';
-          compassButton.addEventListener('click', () => { global.location.hash = `#/spot/${encodeURIComponent(spot.id)}/compass?point=${encodeURIComponent(photo.pointId || '')}&heading=${headingValue}`; });
+          compassButton.addEventListener('click', () => navigate(`#/spot/${encodeURIComponent(spot.id)}/compass?point=${encodeURIComponent(photo.pointId || '')}&heading=${headingValue}`));
           headingLine.append(text, compassButton); headingLine.hidden = false;
         }
       }
@@ -135,7 +153,7 @@
       const recent = getSeasonPhotos(spot.id, point && point.id, season, null)[0];
       const reference = !recent && filters.time === 'all' && filters.weather === 'all' && global.ReferencePhotos ? global.ReferencePhotos.getReferencePhotos(spot.id, season)[0] : null;
       const tile = document.createElement('button'); tile.type = 'button'; tile.className = `other-season-tile${season === route.season ? ' is-current' : ''}`; tile.setAttribute('aria-label', `${seasonNames[season]} 계절 펼쳐 보기${reference ? ', 참고 사진' : ''}`);
-      tile.addEventListener('click', () => navigate(seasonHash(spot.id, season, { pointId: point && point.id, ...filters })));
+      tile.addEventListener('click', () => navigate(seasonHash(spot.id, season, { pointId: point && point.id, ...filters }), false, true));
       const thumb = document.createElement('span'); thumb.className = `other-season-thumb${recent || reference ? '' : ' is-empty'}`;
       if (recent) { const image = document.createElement('img'); image.src = recent.dataUrl; image.alt = `${seasonNames[season]} 최근 승인 사진`; image.loading = 'lazy'; thumb.appendChild(image); }
       else if (reference) { const image = document.createElement('img'); image.src = reference.thumb; image.alt = `${seasonNames[season]} 참고 사진`; image.loading = 'lazy'; thumb.appendChild(image); const badge = document.createElement('span'); badge.className = 'other-season-reference-badge'; badge.textContent = '참고'; thumb.appendChild(badge); }
@@ -173,21 +191,61 @@
 
   function enableEmptySeasonPiles() { if (detailScreen) detailScreen.querySelectorAll('.season-pile:disabled').forEach(button => { button.disabled = false; }); }
   function navigatePile(event) { const pile = event.target.closest && event.target.closest('.season-pile'); if (!pile || !detailScreen.contains(pile)) return; event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation(); const route = routeFromHash(); if (route.screen !== 'detail') return; const season = (global.SpotData.SEASONS || []).find(key => pile.querySelector('.season-pile-name')?.textContent === global.SpotData.SEASONS_KO[key]); if (!season) return; const filters = getFilterValues(), spot = global.App.state.spots.find(item => item.id === route.spotId), point = spot && spot.points.find(item => item.id === global.App.state.currentPointId); state.lastSeasonContext = { spotId: route.spotId, pointId: point && point.id, ...filters }; state.photoIndex = 0; navigate(seasonHash(route.spotId, season, { pointId: point && point.id, ...filters })); }
+  function syncSeasonFilters() {
+    const route = routeFromHash();
+    if (route.screen !== 'season') return;
+    const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId);
+    if (!spot) return;
+    const point = (spot.points || []).find(item => item.id === global.App.state.currentPointId) || spot.points[0];
+    const hash = seasonHash(spot.id, route.season, { pointId: point && point.id, ...getFilterValues() });
+    if (hash !== global.location.hash) navigate(hash, false, true);
+  }
+  function syncDetailPointFromClick(event) {
+    const button = event.target.closest && event.target.closest('#point-tabs button');
+    if (!button) return;
+    const route = routeFromHash();
+    if (route.screen !== 'detail' || !global.App || !global.App.state) return;
+    const pointId = global.App.state.currentPointId;
+    const spot = global.App.state.spots.find(item => item.id === route.spotId);
+    if (spot && pointId && (!route.params || route.params.get('point') !== pointId)) navigate(`#/spot/${encodeURIComponent(spot.id)}?point=${encodeURIComponent(pointId)}`, false, true);
+  }
+  function onHashChange() {
+    const storedDepth = depthOf(stateObject());
+    if (storedDepth === null) {
+      currentDepth += 1;
+      replaceCurrent(global.location.hash || '#/', currentDepth);
+    } else currentDepth = storedDepth;
+    renderRoute();
+  }
+  function onPopState() {
+    const storedDepth = depthOf(stateObject());
+    currentDepth = storedDepth === null ? 0 : storedDepth;
+    renderRoute();
+  }
 
   function initScreens() {
     if (!home || !listScreen || !detailScreen || !list || !seasonScreen) return;
-    document.getElementById('btn-open-spots').addEventListener('click', () => navigate('#/spots', true)); document.getElementById('btn-open-local-records').addEventListener('click', () => navigate('#/local')); document.getElementById('btn-list-back').addEventListener('click', () => navigate('#/', false, true)); document.getElementById('btn-detail-back').addEventListener('click', () => navigate('#/spots', false, true));
+    const initialState = stateObject();
+    currentDepth = 0;
+    global.history.replaceState({ ...initialState, __appDepth: 0 }, '', `${global.location.pathname}${global.location.search}${global.location.hash || '#/'}`);
+    if (!global.location.hash) global.history.replaceState({ ...stateObject(), __appDepth: 0 }, '', `${global.location.pathname}${global.location.search}#/`);
+    document.getElementById('btn-open-spots').addEventListener('click', () => navigate('#/spots', true)); document.getElementById('btn-open-local-records').addEventListener('click', () => navigate('#/local')); document.getElementById('btn-list-back').addEventListener('click', () => goBack('#/')); document.getElementById('btn-detail-back').addEventListener('click', () => goBack('#/spots'));
     const compassLaunch = document.getElementById('btn-open-compass'); if (compassLaunch) compassLaunch.addEventListener('click', () => { const route = routeFromHash(), currentSpot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId), currentPointId = currentSpot && currentSpot.points.some(point => point.id === global.App.state.currentPointId) ? global.App.state.currentPointId : currentSpot && currentSpot.points[0] && currentSpot.points[0].id; if (currentSpot && currentPointId) navigate(`#/spot/${encodeURIComponent(currentSpot.id)}/compass?point=${encodeURIComponent(currentPointId)}`); });
     document.querySelectorAll('[data-spot-sort]').forEach(button => button.addEventListener('click', async () => { if (button.dataset.spotSort !== 'nearest') { state.locationError = ''; setSort('name'); return; } state.locationError = ''; setSort('nearest'); if (global.App && global.App.requestUserLocation) { const located = await global.App.requestUserLocation(true); state.locationError = located ? '' : '위치를 확인할 수 없어 가까운 순으로 정렬할 수 없어요.'; renderSpotList(); } }));
     if (searchInput) searchInput.addEventListener('input', () => { state.query = searchInput.value; renderSpotList(); }); document.addEventListener('click', navigatePile, true);
+    document.addEventListener('click', syncDetailPointFromClick);
+    document.addEventListener('click', event => { if (event.target.closest && event.target.closest('[data-gallery-time]')) global.setTimeout(syncSeasonFilters, 0); });
+    document.addEventListener('change', event => { if (event.target && event.target.id === 'gallery-weather-filter') syncSeasonFilters(); });
     if (global.MutationObserver) { pileObserver = new MutationObserver(enableEmptySeasonPiles); const matrix = document.getElementById('photo-matrix'); if (matrix) pileObserver.observe(matrix, { childList: true, subtree: true }); enableEmptySeasonPiles(); }
-    global.addEventListener('hashchange', renderRoute); global.addEventListener('spotstatechange', () => { if (!listScreen.hidden) renderSpotList(); enableEmptySeasonPiles(); const route = routeFromHash(); if (route.screen === 'season' && !seasonScreen.hidden) renderSeasonScreen(route); });
-    if (!global.location.hash) global.history.replaceState(null, '', `${global.location.pathname}${global.location.search}#/`); setSort('name'); renderRoute();
+    global.addEventListener('hashchange', onHashChange); global.addEventListener('popstate', onPopState); global.addEventListener('spotstatechange', () => { if (!listScreen.hidden) renderSpotList(); enableEmptySeasonPiles(); const route = routeFromHash(); if (route.screen === 'season' && !seasonScreen.hidden) renderSeasonScreen(route); });
+    setSort('name'); renderRoute();
   }
 
   global.Screens = Object.freeze({
+    navigate: (hash, focusSearch, replace) => navigate(hash, focusSearch, replace),
+    goBack,
     navigateSeason: (spotId, season) => { const filters = getFilterValues(), spot = global.App.state.spots.find(item => item.id === spotId), point = spot && spot.points.find(item => item.id === global.App.state.currentPointId); navigate(seasonHash(spotId, season, { pointId: point && point.id, ...filters })); },
-    navigateSpot: (spotId, pointId) => { const query = pointId ? `?point=${encodeURIComponent(pointId)}` : ''; navigate(`#/spot/${encodeURIComponent(spotId)}${query}`); }
+    navigateSpot: (spotId, pointId, replace) => { const query = pointId ? `?point=${encodeURIComponent(pointId)}` : ''; navigate(`#/spot/${encodeURIComponent(spotId)}${query}`, false, replace); }
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScreens, { once: true }); else initScreens();
 })(globalThis);

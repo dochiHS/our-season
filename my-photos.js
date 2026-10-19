@@ -30,7 +30,10 @@
     back.className = 'back-button my-photos-back';
     back.setAttribute('aria-label', '첫 화면으로 돌아가기');
     back.textContent = '‹';
-    back.addEventListener('click', () => { global.location.hash = '#/'; });
+    back.addEventListener('click', () => {
+      if (global.Screens && typeof global.Screens.goBack === 'function') global.Screens.goBack('#/');
+      else global.location.hash = '#/';
+    });
     const title = document.createElement('h1');
     title.className = 'my-photos-title';
     title.textContent = '내가 올린 사진';
@@ -199,7 +202,7 @@
     if (!app) return;
     const reload = app.loadApprovedPhotos || app.refreshPhotos || app.reloadPhotos;
     if (typeof reload === 'function') {
-      try { await reload.call(app); } catch (error) { /* 사진 목록 갱신 실패는 삭제 결과를 되돌리지 않습니다. */ }
+      try { await reload.call(app); } catch (error) { /* 목록 갱신 실패는 삭제 결과를 되돌리지 않습니다. */ }
     }
   }
 
@@ -286,7 +289,8 @@
       if (!user) user = await global.OurAuth.requireLogin();
       if (!active || version !== openVersion) return;
       if (!user) {
-        global.location.hash = '#/';
+        if (global.Screens && typeof global.Screens.navigate === 'function') global.Screens.navigate('#/', false, true);
+        else global.location.replace('#/');
         return;
       }
       currentUser = user;
@@ -327,7 +331,10 @@
       currentUser = user;
       return;
     }
-    if (active && !resolvingAuth && screen && !screen.hidden) global.location.hash = '#/';
+    if (active && !resolvingAuth && screen && !screen.hidden) {
+      if (global.Screens && typeof global.Screens.navigate === 'function') global.Screens.navigate('#/', false, true);
+      else global.location.replace('#/');
+    }
   });
 
   global.MyPhotos = Object.freeze({ open, close });
