@@ -34,7 +34,7 @@
   const SELECT_COLUMNS = [
     'id', 'kind', 'spot_id', 'point_id', 'city', 'district', 'place_name', 'season',
     'time_of_day', 'weather', 'weather_note', 'memo', 'nickname',
-    'photo_path', 'taken_at', 'created_at', 'approx_lat', 'approx_lng'
+    'photo_path', 'taken_at', 'created_at', 'approx_lat', 'approx_lng', 'location_verified'
   ].join(',');
 
   const loginView = document.getElementById('login-view');
@@ -236,6 +236,7 @@
 
     const content = makeElement('div', 'photo-card-content');
     content.appendChild(makeElement('p', 'photo-kind', getKindLabel(row)));
+    if (row.location_verified === false) content.appendChild(makeElement('p', 'photo-location-unverified', '위치 미확인 · 장소 직접 확인 필요'));
     if (row.kind === 'free' && hasApproxLocation(row)) content.appendChild(makeElement('small', 'photo-location-status', '위치 표시: 켬'));
 
     const tags = makeElement('div', 'photo-tags');

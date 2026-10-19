@@ -134,12 +134,21 @@
       const season = makeText('my-photo-meta', seasonName(row.season));
       const date = makeText('my-photo-meta', `찍은 날짜: ${dateText(row.taken_at || row.created_at)}`);
       body.append(place, season, date);
+      const badges = document.createElement('div');
+      badges.className = 'my-photo-statuses';
       if (row.status === 'approved' || row.status === 'pending') {
         const badge = document.createElement('span');
         badge.className = `my-photo-status is-${row.status}`;
         badge.textContent = row.status === 'approved' ? '공개 중' : '승인 대기';
-        body.appendChild(badge);
+        badges.appendChild(badge);
       }
+      if (row.location_verified === false) {
+        const locationBadge = document.createElement('span');
+        locationBadge.className = 'my-photo-status is-location-unverified';
+        locationBadge.textContent = '위치 미확인';
+        badges.appendChild(locationBadge);
+      }
+      if (badges.childElementCount) body.appendChild(badges);
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'my-photo-delete';
@@ -160,7 +169,7 @@
     const client = global.OurAuth && global.OurAuth.getClient();
     if (!client) throw new Error('Supabase 클라이언트를 사용할 수 없습니다.');
     const result = await client.from('season_photos')
-      .select('id, kind, spot_id, point_id, season, place_name, city, district, status, photo_path, taken_at, created_at')
+      .select('id, kind, spot_id, point_id, season, place_name, city, district, status, photo_path, taken_at, created_at, location_verified')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     if (result.error) throw result.error;

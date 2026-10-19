@@ -87,3 +87,5 @@
 .my-photos-confirm-actions button:disabled { opacity: .55; cursor: wait; }
 .my-photos-confirm-modal { z-index: 120; }
 @media (max-width: 360px) { .my-photo-thumbnail { flex-basis: 86px; width: 86px; min-height: 86px; } .my-photo-card { gap: 9px; } }
+.my-photo-statuses { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.my-photo-status.is-location-unverified { border: 1px solid #e8b6a6; background: #fff0e8; color: #8f2f22; }

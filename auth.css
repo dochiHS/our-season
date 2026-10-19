@@ -25,7 +25,10 @@
   top: auto;
   right: auto;
   z-index: auto;
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
   width: 100%;
   min-height: 0;
   margin: 7px 0 0;
@@ -41,29 +44,31 @@
   white-space: normal;
 }
 #home-screen .home-auth-login {
-  width: 50%;
+  width: auto;
   min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  padding: 7px 14px;
-  border: 1px solid #D9C49F;
-  border-radius: var(--radius-lg);
-  background: #F5EEDF;
-  color: #705B3F;
-  font-size: 16px;
+  display: inline-block;
+  margin: 0;
+  padding: 10px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-primary-dark);
+  font-family: var(--font-sans);
+  font-size: 17px;
   font-weight: 700;
-  text-align: center;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
 }
 #home-screen .home-auth-login-hint {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
+  display: inline;
+  margin: 0 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
   font-weight: 400;
-  text-align: center;
+  text-decoration: none;
 }
 #home-screen .home-auth-login[hidden] + .home-auth-login-hint { display: none !important; }
 #home-screen .home-my-photos-button {

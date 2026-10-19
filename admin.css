@@ -363,3 +363,17 @@ h1 {
 .card-actions.is-single-action {
   grid-template-columns: 1fr;
 }
+
+.photo-location-unverified {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 10px;
+  border: 1px solid #b64835;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fff0e8;
+  color: #8f2f22;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}

@@ -136,6 +136,7 @@
       if (isReference) { const tag = document.createElement('span'); tag.className = 'season-photo-tag season-reference-tag'; tag.textContent = '참고 사진'; metaTags.appendChild(tag); memo.textContent = ''; memo.hidden = true; credit.textContent = `${global.ReferencePhotos.creditOf(photo)} · ${photo.month} 촬영`; referenceNotice.textContent = '이 계절 사진이 아직 없어 관광공사 사진을 보여 드려요. 직접 찍은 사진을 올려 주세요.'; referenceNotice.hidden = false; }
       else {
         const timeLabel = timeNames[photo.timeOfDay] || '시간 미상'; [timeLabel, labelWeather(photo)].forEach(text => { const tag = document.createElement('span'); tag.className = 'season-photo-tag'; tag.textContent = text; metaTags.appendChild(tag); });
+        if (photo.locationVerified === false) { const tag = document.createElement('span'); tag.className = 'season-photo-tag'; tag.textContent = '위치 미확인'; metaTags.appendChild(tag); }
         memo.textContent = photo.memo || ''; memo.hidden = !photo.memo; credit.textContent = `${photo.nickname || '익명'} · ${formatPhotoDate(photo)}`; referenceNotice.textContent = ''; referenceNotice.hidden = true;
         const headingValue = photo.heading === null || photo.heading === undefined || photo.heading === '' ? NaN : Number(photo.heading);
         if (Number.isInteger(headingValue) && headingValue >= 0 && headingValue <= 359) {
