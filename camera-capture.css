@@ -1,0 +1,221 @@
+.camera-capture-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  isolation: isolate;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.camera-capture-video,
+.camera-capture-still {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.camera-capture-still[hidden] {
+  display: none;
+}
+
+.camera-capture-top {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  min-height: 60px;
+  padding: 8px 12px;
+  background: linear-gradient(rgba(0, 0, 0, .55), transparent);
+}
+
+.camera-capture-close {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .38);
+  color: #fff;
+  font: inherit;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.camera-capture-direction {
+  overflow: hidden;
+  color: rgba(255, 255, 255, .92);
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camera-capture-top-spacer {
+  width: 44px;
+  height: 44px;
+}
+
+.camera-capture-bottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 128px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 14px 16px max(24px, env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(transparent, rgba(0, 0, 0, .68));
+}
+
+.camera-capture-status {
+  min-height: 18px;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .75);
+}
+
+.camera-capture-status:empty {
+  min-height: 0;
+}
+
+.camera-capture-status.camera-capture-error {
+  max-width: 330px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .72);
+}
+
+.camera-capture-shutter {
+  position: relative;
+  display: inline-flex;
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .2);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.camera-capture-shutter[hidden] {
+  display: none !important;
+}
+
+.camera-capture-shutter::after {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fff;
+  content: "";
+}
+
+.camera-capture-shutter:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.camera-capture-review {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.camera-capture-review[hidden] {
+  display: none;
+}
+
+.camera-capture-action {
+  min-width: 108px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, .68);
+  border-radius: 24px;
+  background: rgba(20, 20, 20, .75);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.camera-capture-action-primary {
+  border-color: #fff;
+  background: #fff;
+  color: #241d18;
+}
+
+.camera-capture-action:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.camera-capture-top,
+.camera-capture-bottom {
+  flex-shrink: 0;
+}
+
+.camera-capture-top {
+  z-index: 1;
+}
+
+.camera-capture-bottom {
+  z-index: 1;
+}
+
+.camera-capture-close:focus-visible,
+.camera-capture-shutter:focus-visible,
+.camera-capture-action:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.camera-capture-action-primary:focus-visible {
+  outline-color: #d9b96e;
+}
+
+@media (max-height: 500px) {
+  .camera-capture-top {
+    min-height: 52px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .camera-capture-bottom {
+    min-height: 104px;
+    gap: 8px;
+    padding-top: 8px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+}
