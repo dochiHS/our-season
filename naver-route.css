@@ -2,40 +2,25 @@
   margin: 0 16px 18px;
 }
 
-.naver-route-title {
-  margin: 0 0 8px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
+.naver-route-panel[hidden] {
+  display: none;
 }
 
-.naver-route-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.naver-route-buttons button {
-  min-width: 0;
+.naver-route-walk-button {
+  display: block;
+  width: 100%;
   min-height: 44px;
-  padding: 7px 3px;
+  padding: 8px 12px;
   border: 1px solid var(--bg-border);
   border-radius: var(--radius-md);
   background: #F5EEDF;
   color: #705B3F;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  white-space: nowrap;
   cursor: pointer;
 }
 
-.naver-route-buttons button:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
-
 @media (max-width: 360px) {
-  .naver-route-buttons { gap: 4px; }
-  .naver-route-buttons button { padding-inline: 1px; font-size: 11px; }
+  .naver-route-walk-button { padding-inline: 8px; font-size: 12px; }
 }

@@ -252,14 +252,15 @@
 .season-photo-heading-line[hidden] { display: none; }
 
 .season-photo-compass-button {
-  padding: 4px 10px;
-  border: 1px solid var(--bg-border);
-  border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--color-primary);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 600;
+  min-height: 32px;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
 
