@@ -37,8 +37,9 @@
         let entry = markers.get(point.id);
         if (!entry) {
           const marker = global.L.marker([point.lat, point.lng], { icon: createPointIcon(point.id === state.currentPointId), title: point.name, keyboard: true }).addTo(map);
-          const popup = document.createElement('span'); popup.textContent = point.name; marker.bindPopup(popup); marker.on('click', () => setSelectedPoint(point.id, true));
-          const circle = global.L.circle([point.lat, point.lng], { radius: Number(point.radiusMeters) || 500, color: '#B78B4A', weight: 1.5, opacity: .75, fillColor: '#D7B778', fillOpacity: .2, interactive: false }).addTo(map);
+          marker.on('click', () => { setSelectedPoint(point.id, false); if (global.PointSheet) global.PointSheet.open(spot.id, point.id); });
+          const pinColor = getComputedStyle(document.documentElement).getPropertyValue('--pin').trim() || '#B78B4A';
+          const circle = global.L.circle([point.lat, point.lng], { radius: Number(point.radiusMeters) || 500, color: pinColor, weight: 1.5, opacity: .75, fillColor: pinColor, fillOpacity: .2, interactive: false }).addTo(map);
           entry = { marker, circle }; markers.set(point.id, entry);
         } else entry.marker.setIcon(createPointIcon(point.id === state.currentPointId));
       });
@@ -56,6 +57,7 @@
     }, { passive: false });
     mapElement.addEventListener('touchend', event => { touchMidpoint = event.touches.length >= 2 ? getMidpoint(event.touches) : null; }, { passive: true });
     mapElement.addEventListener('touchcancel', () => { touchMidpoint = null; }, { passive: true });
+    map.on('click', () => { if (global.PointSheet) global.PointSheet.close(); });
     global.SpotMap = Object.freeze({ refresh: fit => renderSpot(Boolean(fit)) });
     global.addEventListener('spotstatechange', showUserLocation);
     renderSpot(true); showUserLocation();

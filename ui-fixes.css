@@ -32,6 +32,7 @@
   font-size: 0;
   line-height: 0;
 }
+
 .search-arrow::before,
 .spot-list-card-arrow::before {
   content: '';
@@ -117,5 +118,45 @@
 }
 .modal-sheet .btn-close-modal {
   min-width: 44px;
+  min-height: 44px;
+}
+
+/* 터치 대상 크기와 입력 확대 방지 */
+.season-filter-group {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.season-filter-button {
+  min-height: 44px;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+[data-spot-sort] {
+  min-height: 44px;
+}
+#gallery-weather-filter {
+  min-height: 44px;
+  font-size: 16px;
+}
+#spot-search-input,
+.auth-input,
+.modal-sheet input,
+.modal-sheet select,
+.modal-sheet textarea {
+  font-size: 16px;
+}
+#spot-search-input {
+  min-height: 44px;
+}
+#spot-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  font-size: 22px;
+}
+.spot-tab-chip,
+.point-tab-chip {
   min-height: 44px;
 }

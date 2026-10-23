@@ -29,7 +29,7 @@
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .3s;
+  transition: opacity .6s;
 }
 
 .season-slideshow-photo.is-active {

@@ -116,4 +116,20 @@
   global.addEventListener('spotstatechange', scheduleUpdate);
   const pointTabs = document.getElementById('point-tabs');
   if (pointTabs) pointTabs.addEventListener('click', scheduleUpdate);
+  global.NaverRoute = Object.freeze({
+    openTo(lat, lng, name, mode) {
+      const routeMode = mode === 'public' ? 'public' : 'walk';
+      const path = `route/${routeMode}?dlat=${lat}&dlng=${lng}&dname=${encodeURIComponent(name)}&appname=${APP_NAME}`;
+      if (!isMobileDevice()) {
+        global.open(`https://map.naver.com/p/search/${encodeURIComponent(name)}`, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (/Android/i.test(global.navigator.userAgent)) {
+        const fallback = `;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE)}`;
+        global.location.href = `intent://${path}#Intent;scheme=nmap;package=com.nhn.android.nmap${fallback};end`;
+        return;
+      }
+      openIosApp(path);
+    }
+  });
 })(globalThis);

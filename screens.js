@@ -1,6 +1,8 @@
 (function (global) {
   'use strict';
 
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
   const state = { query: '', sort: 'name', focusSearchOnShow: false, locationError: '', activeScreen: null, lastSeasonContext: null };
   const home = document.getElementById('home-screen');
   const listScreen = document.getElementById('spots-screen');
@@ -16,6 +18,9 @@
   let currentDepth = 0;
   let pendingPopHash = null;
   let pendingPopTimer = null;
+  let lastScreenKey = null;
+  const screenScrollPositions = new Map();
+  let popstateNavigation = false;
 
   function createSeasonScreen() {
     if (!appContainer) return null;
@@ -167,8 +172,19 @@
   function showSeasonPhoto(delta) { if (!seasonScreen) return; const route = routeFromHash(); if (route.screen !== 'season') return; const spot = global.App.state.spots.find(item => item.id === route.spotId); if (!spot) return; const point = (spot.points || []).find(item => item.id === global.App.state.currentPointId) || (spot.points || [])[0], photos = getSeasonDisplayPhotos(spot.id, point && point.id, route.season, getFilterValues()).photos; if (!photos.length) return; state.photoIndex = Math.min(Math.max((state.photoIndex || 0) + delta, 0), photos.length - 1); renderSeasonScreen(route); }
   function restoreSeasonContext(route) { const params = route.params || new URLSearchParams(), spot = global.App.state.spots.find(item => item.id === route.spotId); if (!spot) return; const requestedPoint = params.get('point'); if (requestedPoint && spot.points.some(point => point.id === requestedPoint)) global.App.state.currentPointId = requestedPoint; else if (!global.App.state.currentPointId || !spot.points.some(point => point.id === global.App.state.currentPointId)) global.App.state.currentPointId = spot.points[0] && spot.points[0].id; const time = params.get('time'), weather = params.get('weather'); if (time && document.querySelector(`[data-gallery-time="${CSS.escape(time)}"]`)) document.querySelector(`[data-gallery-time="${CSS.escape(time)}"]`).click(); if (weather) { const select = document.getElementById('gallery-weather-filter'); if (select && Array.from(select.options).some(option => option.value === weather)) { select.value = weather; select.dispatchEvent(new Event('change', { bubbles: true })); } } if (global.App.renderPointTabs) global.App.renderPointTabs(); if (global.App.renderSummaryCard) global.App.renderSummaryCard(); if (global.App.renderMatrix) global.App.renderMatrix(); if (global.SpotMap) global.SpotMap.refresh(false); state.lastSeasonContext = { spotId: spot.id, pointId: global.App.state.currentPointId, time: getFilterValues().time, weather: getFilterValues().weather }; }
 
+  function screenKeyForRoute(route) {
+    if (route.screen === 'detail' || route.screen === 'season' || route.screen === 'compass') return `${route.screen}:${route.spotId}`;
+    if (route.screen === 'local-place') return `local-place:${route.recordId}`;
+    return route.screen;
+  }
+
   function renderRoute() {
     const route = routeFromHash(), cameFromSeason = state.activeScreen === 'season', isHome = route.screen === 'home', isList = route.screen === 'spots', isSeason = route.screen === 'season', isCompass = route.screen === 'compass', isLocal = route.screen === 'local', isLocalPlace = route.screen === 'local-place';
+    const nextScreenKey = screenKeyForRoute(route);
+    if (lastScreenKey !== null) screenScrollPositions.set(lastScreenKey, global.scrollY);
+    const screenChanged = lastScreenKey !== nextScreenKey;
+    const restoreForPopstate = popstateNavigation;
+    lastScreenKey = nextScreenKey;
     if (!isCompass && global.Compass) global.Compass.close();
     home.hidden = !isHome; listScreen.hidden = !isList; detailScreen.hidden = route.screen !== 'detail'; if (compassScreen) compassScreen.hidden = !isCompass;
     const myPhotosScreen = document.getElementById('my-photos-screen'); if (myPhotosScreen) myPhotosScreen.hidden = route.screen !== 'my-photos';
@@ -189,6 +205,13 @@
     if (isSeason) { const spot = global.App && global.App.state && global.App.state.spots.find(item => item.id === route.spotId); if (!spot) { navigate('#/spots', false, true); return; } global.App.selectSpot(route.spotId); restoreSeasonContext(route); state.photoIndex = 0; renderSeasonScreen(route); }
     if (isHome || isList || isLocal || isLocalPlace || route.screen === 'my-photos') state.lastSeasonContext = null;
     state.activeScreen = route.screen;
+    global.requestAnimationFrame(() => {
+      if (!screenChanged) return;
+      const savedScrollY = screenScrollPositions.get(nextScreenKey);
+      if (restoreForPopstate && savedScrollY !== undefined) global.scrollTo(0, savedScrollY);
+      else global.scrollTo(0, 0);
+    });
+    popstateNavigation = false;
   }
 
   function enableEmptySeasonPiles() { if (detailScreen) detailScreen.querySelectorAll('.season-pile:disabled').forEach(button => { button.disabled = false; }); }
@@ -220,6 +243,7 @@
     renderRoute();
   }
   function onPopState() {
+    popstateNavigation = depthOf(stateObject()) !== null;
     const storedDepth = depthOf(stateObject());
     currentDepth = storedDepth === null ? 0 : storedDepth;
     renderRoute();

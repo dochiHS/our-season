@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
 
-  const INTERVAL_MS = 1000;
+  const INTERVAL_MS = 2500;
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   const section = document.getElementById('season-slideshow');
   const detailScreen = document.getElementById('detail-screen');

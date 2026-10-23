@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>그 자리, 그 계절 - 출사 명소와 동네 기록 아카이브</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="favicon.ico" sizes="any">
@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="naver-route.css">
   <link rel="stylesheet" href="reference-photos.css">
   <link rel="stylesheet" href="season-slideshow.css">
+  <link rel="stylesheet" href="point-sheet.css">
   <link rel="stylesheet" href="ui-fixes.css">
   <link rel="stylesheet" href="season-theme.css">
 </head>
@@ -55,7 +56,7 @@
 
     <!-- 명소 목록 화면 -->
     <section id="spots-screen" class="screen spots-screen" aria-label="명소 목록" hidden>
-      <header class="screen-topbar"><button id="btn-list-back" class="back-button" type="button" aria-label="첫 화면으로 돌아가기">‹</button><label class="screen-search-box" for="spot-search-input"><span class="search-icon" aria-hidden="true"></span><input id="spot-search-input" type="search" placeholder="명소·동 이름 검색 (예: 문의, 수동)" autocomplete="off" aria-label="명소 이름 검색"><span class="search-shortcut">검색</span></label></header>
+      <header class="screen-topbar"><button id="btn-list-back" class="back-button" type="button" aria-label="첫 화면으로 돌아가기">‹</button><label class="screen-search-box" for="spot-search-input"><span class="search-icon" aria-hidden="true"></span><input id="spot-search-input" type="search" placeholder="명소·동 이름 검색 (예: 문의, 수동)" autocomplete="off" aria-label="명소·동 이름 검색"><span class="search-shortcut">검색</span></label></header>
       <div class="spot-sort-row" role="group" aria-label="명소 정렬"><button class="spot-sort-button" data-spot-sort="nearest" type="button" aria-pressed="false">내 주변 가까운 순</button><button class="spot-sort-button" data-spot-sort="name" type="button" aria-pressed="true">이름 순</button></div><div id="spot-list" class="spot-list" aria-live="polite"></div>
     </section>
 
@@ -91,7 +92,7 @@
   <script src="auth.js"></script>
   <script src="my-photos.js"></script>
   <script src="camera-capture.js"></script>
-  <script src="app.js"></script><script src="free-upload.js"></script><script src="modal-back.js"></script><script src="free-photo-viewer.js"></script><script src="free-records.js"></script><script src="map-feature.js"></script><script src="compass.js"></script><script src="naver-route.js"></script><script src="screens.js"></script><script src="season-slideshow.js"></script><script src="upload-draft-resume.js"></script>
+  <script src="app.js"></script><script src="free-upload.js"></script><script src="modal-back.js"></script><script src="free-photo-viewer.js"></script><script src="free-records.js"></script><script src="map-feature.js"></script><script src="compass.js"></script><script src="naver-route.js"></script><script src="point-sheet.js"></script><script src="screens.js"></script><script src="season-slideshow.js"></script><script src="upload-draft-resume.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>

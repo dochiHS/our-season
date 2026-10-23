@@ -135,3 +135,173 @@ html[data-theme="winter"] .header-petal {
     animation: none;
   }
 }
+
+/* 계절별 패널·사진·지도 색상 */
+html[data-theme="spring"] {
+  --panel-bg: #EBF2DE;
+  --panel-text: #46613A;
+  --panel-border: #C3D4A8;
+  --paper-1: #E4EAD8;
+  --paper-2: #EEF2E6;
+  --photo-matte: #E8EDE0;
+  --locked-bg: #E1E6D8;
+  --arch-top: #F2D6DA;
+  --arch-mid: #F9E9E8;
+  --hill-back: #A9C99A;
+  --hill-front: #87A77D;
+  --pin: #7FA05A;
+  --pin-dark: #4F7332;
+}
+
+html[data-theme="summer"] {
+  --panel-bg: #E2EEF4;
+  --panel-text: #2F5568;
+  --panel-border: #B5D0DE;
+  --paper-1: #DDE8EE;
+  --paper-2: #EAF1F5;
+  --photo-matte: #E4ECF0;
+  --locked-bg: #DCE5EA;
+  --arch-top: #B9D9E8;
+  --arch-mid: #E1EFF2;
+  --hill-back: #79A66E;
+  --hill-front: #5F875E;
+  --pin: #4F8FB0;
+  --pin-dark: #2C6585;
+}
+
+html[data-theme="autumn"] {
+  --panel-bg: #F5EEDF;
+  --panel-text: #705B3F;
+  --panel-border: #D9C49F;
+  --paper-1: #EEE6DA;
+  --paper-2: #F6F0E7;
+  --photo-matte: #EEE9E1;
+  --locked-bg: #E9E2D8;
+  --arch-top: #F0D2B8;
+  --arch-mid: #F8E9D8;
+  --hill-back: #C99A68;
+  --hill-front: #A97950;
+  --pin: #B78B4A;
+  --pin-dark: #876438;
+}
+
+html[data-theme="winter"] {
+  --panel-bg: #E6EBF1;
+  --panel-text: #3E4C60;
+  --panel-border: #C3CDD9;
+  --paper-1: #E1E6EC;
+  --paper-2: #EDF0F4;
+  --photo-matte: #E7EAEE;
+  --locked-bg: #DFE3E8;
+  --arch-top: #D5DFE8;
+  --arch-mid: #EEF1F3;
+  --hill-back: #D8E0E4;
+  --hill-front: #B8C6CD;
+  --pin: #7B8EA8;
+  --pin-dark: #475B77;
+}
+
+.home-local-button,
+#home-screen .home-my-photos-button,
+.compass-launch-button,
+.home-pwa-install-button,
+.naver-route-walk-button {
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  border-color: var(--panel-border);
+}
+
+.home-pwa-ios-notice {
+  background: var(--panel-bg);
+}
+
+.grid-row-header.is-current-season,
+.matrix-slot.is-current-season:not(.is-filled) {
+  background-color: var(--color-primary-soft);
+}
+
+.grid-row-header.is-current-season {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.matrix-slot.is-current-season {
+  border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.btn-upload-action {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+.btn-upload-action.state-ready {
+  border-color: var(--color-primary-dark);
+}
+
+.btn-upload-action.state-locked {
+  background: var(--locked-bg);
+  border-color: color-mix(in srgb, var(--color-primary) 46%, transparent);
+}
+
+.spot-tab-chip.active .spot-distance-badge {
+  background-color: color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
+.season-pile.is-current-season {
+  background: linear-gradient(145deg, var(--bg-surface), var(--color-primary-soft));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent), 0 4px 14px color-mix(in srgb, var(--color-primary-dark) 13%, transparent);
+}
+
+.season-pile.is-current-season .season-pile-empty {
+  border-color: color-mix(in srgb, var(--color-primary) 75%, transparent);
+}
+
+.other-season-tile.is-current {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.season-photo-tag.season-reference-tag {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.compass-dial {
+  box-shadow: 0 4px 18px rgba(59, 52, 45, .1), inset 0 0 0 5px color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.season-pile-back,
+.season-photo-back {
+  background: var(--paper-1);
+}
+
+.season-pile-back-two,
+.season-photo-back-two {
+  background: var(--paper-2);
+}
+
+.season-photo-card img {
+  background: var(--photo-matte);
+}
+
+.floating-bottom-bar,
+.free-records-bottom-bar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 0%, transparent) 0%, color-mix(in srgb, var(--bg-primary) 96%, transparent) 35%, var(--bg-primary) 100%);
+}
+
+html[data-theme] .header-arch {
+  background: linear-gradient(180deg, var(--arch-top) 0%, var(--arch-mid) 62%, var(--bg-surface) 62%);
+}
+
+html[data-theme] .header-arch .arch-hill-back {
+  fill: var(--hill-back);
+}
+
+html[data-theme] .header-arch .arch-hill-front {
+  fill: var(--hill-front);
+}
+
+#spot-map .photo-point-marker {
+  background: var(--pin);
+}
+
+#spot-map .photo-point-marker.is-selected {
+  background: var(--pin-dark);
+}
