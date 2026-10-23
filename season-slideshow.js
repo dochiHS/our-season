@@ -11,6 +11,11 @@
   let selectedSeason = null;
   let timerId = null;
   let pointerDown = false;
+  let swipeStart = null;
+  let swipeLayer = null;
+  let swipeActive = false;
+  let swipeCancelled = false;
+  let suppressNextClick = false;
   let initialized = false;
 
   function appState() {
@@ -199,6 +204,36 @@
       }
       frame.appendChild(button);
     });
+
+    if (slides.length > 1) {
+      const previous = document.createElement('button');
+      previous.type = 'button';
+      previous.className = 'season-slideshow-prev';
+      previous.textContent = '‹';
+      previous.setAttribute('aria-label', '이전 계절 사진');
+      previous.addEventListener('click', () => {
+        const index = currentIndex();
+        selectSeason(slides[(index <= 0 ? slides.length : index) - 1].season, true);
+      });
+      frame.appendChild(previous);
+
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'season-slideshow-next';
+      next.textContent = '›';
+      next.setAttribute('aria-label', '다음 계절 사진');
+      next.addEventListener('click', () => {
+        const index = currentIndex();
+        selectSeason(slides[(index < 0 ? 0 : index + 1) % slides.length].season, true);
+      });
+      frame.appendChild(next);
+    }
+
+    frame.addEventListener('pointerdown', onFramePointerDown);
+    frame.addEventListener('pointermove', onFramePointerMove);
+    frame.addEventListener('pointerup', onFramePointerEnd);
+    frame.addEventListener('pointercancel', onFramePointerEnd);
+    frame.addEventListener('click', onFrameClickCapture, true);
     section.appendChild(frame);
 
     const dots = document.createElement('nav');
@@ -225,6 +260,68 @@
     updateActiveSlide();
     preloadNext();
     syncTimer();
+  }
+
+  function onFramePointerDown(event) {
+    if (event.target.closest('.season-slideshow-prev, .season-slideshow-next, .season-slideshow-dot')) return;
+    swipeStart = { x: event.clientX, y: event.clientY, time: Date.now(), pointerId: event.pointerId };
+    swipeLayer = event.currentTarget.querySelector('.season-slideshow-photo.is-active');
+    swipeActive = false;
+    swipeCancelled = false;
+  }
+
+  function onFramePointerMove(event) {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId || swipeCancelled) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    if (!swipeActive) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) {
+        swipeCancelled = true;
+        return;
+      }
+      if (Math.abs(dx) <= 10 || Math.abs(dx) <= Math.abs(dy)) return;
+      swipeActive = true;
+      if (event.currentTarget.setPointerCapture) {
+        try { event.currentTarget.setPointerCapture(event.pointerId); } catch (_) {}
+      }
+    }
+    if (swipeLayer) {
+      swipeLayer.style.transition = 'none';
+      swipeLayer.style.transform = `translateX(${dx * 0.6}px)`;
+    }
+  }
+
+  function onFramePointerEnd(event) {
+    if (!swipeStart || event.pointerId !== swipeStart.pointerId) return;
+    const dx = event.clientX - swipeStart.x;
+    const elapsed = Math.max(1, Date.now() - swipeStart.time);
+    const wasSwipe = swipeActive;
+    if (swipeLayer) {
+      swipeLayer.style.removeProperty('transition');
+      swipeLayer.style.removeProperty('transform');
+    }
+    if (wasSwipe) {
+      suppressNextClick = true;
+      global.setTimeout(() => { suppressNextClick = false; }, 400);
+      if (Math.abs(dx) > 40 || Math.abs(dx) / elapsed > 0.4) {
+        const index = currentIndex();
+        const targetIndex = dx < 0
+          ? (index < 0 ? 0 : index + 1) % slides.length
+          : (index <= 0 ? slides.length - 1 : index - 1);
+        selectSeason(slides[targetIndex].season, true);
+      }
+    }
+    swipeStart = null;
+    swipeLayer = null;
+    swipeActive = false;
+    swipeCancelled = false;
+  }
+
+  function onFrameClickCapture(event) {
+    if (!suppressNextClick) return;
+    suppressNextClick = false;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   function onPointerDown() {

@@ -1,17 +1,25 @@
 (function (global) {
   'use strict';
 
-  const SEASON_ORDER = ['spring', 'summer', 'autumn', 'winter'];
   let section = null;
   let current = null;
   let historyEntry = false;
   let closeTimer = null;
   let detailObserver = null;
+  let interactionReady = false;
+  let activePointer = null;
+  let restoreTarget = null;
 
   function ensureSection() {
-    if (section && section.isConnected) return section;
+    if (section && section.isConnected) {
+      setupInteractions(section);
+      return section;
+    }
     section = document.getElementById('point-sheet');
-    if (section) return section;
+    if (section) {
+      setupInteractions(section);
+      return section;
+    }
 
     section = document.createElement('section');
     section.id = 'point-sheet';
@@ -19,10 +27,109 @@
     section.setAttribute('role', 'dialog');
     section.setAttribute('aria-labelledby', 'point-sheet-title');
     section.hidden = true;
-    section.innerHTML = '<div class="point-sheet-handle" aria-hidden="true"></div><header class="point-sheet-header"><div class="point-sheet-heading"><h2 id="point-sheet-title"></h2><p class="point-sheet-spot-name"></p></div><button class="point-sheet-close" type="button" aria-label="닫기">×</button></header><div class="point-sheet-photos"></div><p class="point-sheet-credit" hidden></p><div class="point-sheet-actions"></div><p class="point-sheet-arrival-hint" hidden></p>';
+    section.innerHTML = '<div class="point-sheet-handle" role="button" tabindex="0" aria-label="카드 펼치기" aria-expanded="false"></div><header class="point-sheet-header"><div class="point-sheet-heading"><h2 id="point-sheet-title"></h2><p class="point-sheet-spot-name"></p></div><button class="point-sheet-close" type="button" aria-label="닫기">×</button></header><p class="point-sheet-photo-count"></p><div class="point-sheet-photos"></div><div class="point-sheet-empty-state" hidden></div><p class="point-sheet-credit" hidden></p><div class="point-sheet-actions"></div><p class="point-sheet-arrival-hint" hidden></p>';
     document.body.appendChild(section);
-    section.querySelector('.point-sheet-close').addEventListener('click', () => close(true));
+    setupInteractions(section);
     return section;
+  }
+
+  function updateHandleState(root) {
+    const handle = root && root.querySelector('.point-sheet-handle');
+    if (!handle) return;
+    const expanded = root.classList.contains('is-expanded');
+    handle.setAttribute('aria-label', expanded ? '카드 접기' : '카드 펼치기');
+    handle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function setExpanded(expanded) {
+    if (!section) return;
+    section.classList.toggle('is-expanded', Boolean(expanded));
+    updateHandleState(section);
+  }
+
+  function toggleExpanded() {
+    if (!section) return;
+    setExpanded(!section.classList.contains('is-expanded'));
+  }
+
+  function pointerTime() {
+    return global.performance && typeof global.performance.now === 'function' ? global.performance.now() : Date.now();
+  }
+
+  function onDragStart(event) {
+    if (!section || section.hidden || !section.classList.contains('is-open')) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target && event.target.closest && event.target.closest('.point-sheet-close')) return;
+    activePointer = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startTime: pointerTime(),
+      maxDistance: 0,
+      root: section,
+      source: event.currentTarget
+    };
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch (error) {}
+    section.style.transition = 'none';
+    event.preventDefault();
+  }
+
+  function onDragMove(event) {
+    if (!activePointer || event.pointerId !== activePointer.pointerId) return;
+    const dy = event.clientY - activePointer.startY;
+    activePointer.maxDistance = Math.max(activePointer.maxDistance, Math.abs(dy));
+    const visualDy = !activePointer.root.classList.contains('is-expanded') ? Math.max(-40, dy) : dy;
+    activePointer.root.style.transform = `translateY(${visualDy}px)`;
+    event.preventDefault();
+  }
+
+  function onDragEnd(event) {
+    if (!activePointer || event.pointerId !== activePointer.pointerId) return;
+    const drag = activePointer;
+    activePointer = null;
+    const dy = event.clientY - drag.startY;
+    const elapsed = Math.max(1, pointerTime() - drag.startTime);
+    const velocity = dy / elapsed;
+    const expanded = drag.root.classList.contains('is-expanded');
+    const isHandleTap = drag.source.classList.contains('point-sheet-handle') && drag.maxDistance < 5;
+
+    drag.root.style.removeProperty('transition');
+    drag.root.style.removeProperty('transform');
+
+    if (drag.maxDistance < 5) {
+      if (isHandleTap) toggleExpanded();
+      return;
+    }
+    if (dy < -80 || velocity <= -0.5) {
+      setExpanded(true);
+    } else if (dy > 80 || velocity >= 0.5) {
+      if (expanded) setExpanded(false);
+      else close(true);
+    }
+  }
+
+  function setupInteractions(root) {
+    if (interactionReady || !root) return;
+    interactionReady = true;
+    const handle = root.querySelector('.point-sheet-handle');
+    const header = root.querySelector('.point-sheet-header');
+    const closeButton = root.querySelector('.point-sheet-close');
+    if (handle) {
+      handle.setAttribute('role', 'button');
+      handle.setAttribute('tabindex', '0');
+      handle.addEventListener('pointerdown', onDragStart);
+      handle.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleExpanded();
+        }
+      });
+    }
+    if (header) header.addEventListener('pointerdown', onDragStart);
+    root.addEventListener('pointermove', onDragMove);
+    root.addEventListener('pointerup', onDragEnd);
+    root.addEventListener('pointercancel', onDragEnd);
+    if (closeButton) closeButton.addEventListener('click', () => close(true));
+    updateHandleState(root);
   }
 
   function findTarget(spotId, pointId) {
@@ -47,28 +154,18 @@
     const seasonNames = global.SpotData && global.SpotData.SEASONS_KO
       ? global.SpotData.SEASONS_KO
       : { spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' };
-    const approved = (Array.isArray(state.approvedPhotos) ? state.approvedPhotos : [])
+    const matching = (Array.isArray(state.approvedPhotos) ? state.approvedPhotos : [])
       .filter(photo => photo.spotId === spotId && photo.pointId === pointId)
       .slice()
       .sort((a, b) => {
         const todayDifference = Number(b.season === todaySeason) - Number(a.season === todaySeason);
         return todayDifference || String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || ''));
-      })
+      });
+    const photos = matching
+      .filter(photo => photo.dataUrl)
       .slice(0, 6)
       .map(photo => ({ season: photo.season, image: photo.dataUrl, heading: photo.heading, isReference: false }));
-
-    if (approved.length < 6 && global.ReferencePhotos && typeof global.ReferencePhotos.getReferencePhotos === 'function') {
-      const seasons = [todaySeason, ...SEASON_ORDER.filter(season => season !== todaySeason)];
-      for (const season of seasons) {
-        const references = global.ReferencePhotos.getReferencePhotos(spotId, season) || [];
-        for (const photo of references) {
-          if (approved.length >= 6) break;
-          approved.push({ season, image: photo.image, isReference: true });
-        }
-        if (approved.length >= 6) break;
-      }
-    }
-    return { photos: approved.filter(photo => photo.image), seasonNames };
+    return { photos, count: matching.length, seasonNames };
   }
 
   function render(target) {
@@ -78,11 +175,13 @@
     title.textContent = point.name || '';
     root.querySelector('.point-sheet-spot-name').textContent = spot.name || '';
 
-    const { photos, seasonNames } = getPointPhotos(state, spot.id, point.id);
+    const { photos, count, seasonNames } = getPointPhotos(state, spot.id, point.id);
+    root.querySelector('.point-sheet-photo-count').textContent = `이 자리에서 찍은 사진 ${count}장`;
     const photoStrip = root.querySelector('.point-sheet-photos');
+    const emptyState = root.querySelector('.point-sheet-empty-state');
     const credit = root.querySelector('.point-sheet-credit');
     photoStrip.replaceChildren();
-    let hasReference = false;
+    emptyState.replaceChildren();
     if (photos.length) {
       photos.forEach(photo => {
         const button = document.createElement('button');
@@ -94,28 +193,43 @@
         image.alt = '';
         image.loading = 'lazy';
         button.appendChild(image);
-        if (photo.isReference) {
-          hasReference = true;
-          const badge = document.createElement('span');
-          badge.className = 'point-sheet-reference-badge';
-          badge.textContent = '참고';
-          button.appendChild(badge);
-        }
         button.addEventListener('click', () => {
           goTo(`#/spot/${encodeURIComponent(spot.id)}/season/${encodeURIComponent(photo.season)}?point=${encodeURIComponent(point.id)}`);
         });
         photoStrip.appendChild(button);
       });
       photoStrip.hidden = false;
+      emptyState.hidden = true;
     } else {
+      photoStrip.hidden = true;
       const empty = document.createElement('p');
       empty.className = 'point-sheet-empty';
-      empty.textContent = '아직 이 지점 사진이 없어요';
-      photoStrip.appendChild(empty);
-      photoStrip.hidden = false;
+      empty.textContent = '아직 이 자리에서 찍은 사진이 없어요';
+      emptyState.appendChild(empty);
+      const app = global.App;
+      if (app && typeof app.openUploadModal === 'function') {
+        const uploadButton = document.createElement('button');
+        uploadButton.type = 'button';
+        uploadButton.className = 'point-sheet-action point-sheet-action-secondary point-sheet-upload-button';
+        uploadButton.textContent = '이 자리 사진 올리기';
+        uploadButton.addEventListener('click', () => {
+          const currentApp = global.App;
+          if (!currentApp || typeof currentApp.openUploadModal !== 'function') return;
+          const willRestoreAfterPop = Boolean(historyEntry && global.history.state && global.history.state.pointSheet);
+          close(true);
+          if (willRestoreAfterPop && restoreTarget) {
+            restoreTarget.after = () => currentApp.openUploadModal();
+          } else {
+            restorePoint({ spotId: spot.id, pointId: point.id, after: null });
+            currentApp.openUploadModal();
+          }
+        });
+        emptyState.appendChild(uploadButton);
+      }
+      emptyState.hidden = false;
     }
-    credit.hidden = !hasReference;
-    credit.textContent = hasReference ? '참고 사진 ⓒ한국관광공사 (공공누리 제1유형)' : '';
+    credit.hidden = true;
+    credit.textContent = '';
 
     const actions = root.querySelector('.point-sheet-actions');
     const arrivalHint = root.querySelector('.point-sheet-arrival-hint');
@@ -177,16 +291,41 @@
     }, 260);
   }
 
+  function restorePoint(target) {
+    const app = global.App;
+    if (app && app.state && app.state.currentSpotId === target.spotId) {
+      app.state.currentPointId = target.pointId;
+      if (typeof app.renderPointTabs === 'function') app.renderPointTabs();
+      if (typeof app.renderSummaryCard === 'function') app.renderSummaryCard();
+      if (typeof app.renderMatrix === 'function') app.renderMatrix();
+      if (global.SpotMap && typeof global.SpotMap.refresh === 'function') global.SpotMap.refresh(false);
+    }
+    if (typeof target.after === 'function') target.after();
+  }
+
+  function runRestoreTarget() {
+    if (!restoreTarget) return;
+    const target = restoreTarget;
+    global.setTimeout(() => {
+      restorePoint(target);
+      if (restoreTarget === target) restoreTarget = null;
+    }, 0);
+  }
+
   function close(removeHistory) {
     if (!section || section.hidden) {
       current = null;
       return;
     }
+    const closing = current;
     const shouldGoBack = Boolean(removeHistory && historyEntry && global.history.state && global.history.state.pointSheet);
     historyEntry = false;
     current = null;
     setClosed(false);
-    if (shouldGoBack) global.history.back();
+    if (shouldGoBack) {
+      if (closing) restoreTarget = { spotId: closing.spotId, pointId: closing.pointId, after: null };
+      global.history.back();
+    }
   }
 
   function goTo(hash) {
@@ -199,6 +338,9 @@
     const target = findTarget(spotId, pointId);
     if (!target) return;
     const root = ensureSection();
+    setExpanded(false);
+    root.style.removeProperty('transform');
+    root.style.removeProperty('transition');
     const alreadyOpen = !root.hidden && root.classList.contains('is-open');
     current = { spotId, pointId };
     render(target);
@@ -219,10 +361,14 @@
   }
 
   function onPopState() {
-    if (!historyEntry) return;
-    historyEntry = false;
-    current = null;
-    setClosed(false);
+    if (historyEntry) {
+      const closing = current;
+      historyEntry = false;
+      current = null;
+      setClosed(false);
+      if (closing) restoreTarget = { spotId: closing.spotId, pointId: closing.pointId, after: null };
+    }
+    runRestoreTarget();
   }
 
   function onKeyDown(event) {

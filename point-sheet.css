@@ -15,7 +15,7 @@
   max-height: 70vh;
   overflow-y: auto;
   transform: translateY(100%);
-  transition: transform .25s ease;
+  transition: transform .25s, height .25s;
   box-sizing: border-box;
 }
 
@@ -27,12 +27,19 @@
   transform: translateY(0);
 }
 
+.point-sheet.is-expanded {
+  height: 90vh;
+  max-height: 90vh;
+}
+
 .point-sheet-handle {
-  width: 36px;
-  height: 4px;
-  margin: 0 auto 10px;
+  width: auto;
+  height: 24px;
+  margin: -10px -16px 10px;
   border-radius: 999px;
-  background: var(--bg-border);
+  background: linear-gradient(var(--bg-border), var(--bg-border)) center 0 / 36px 4px no-repeat;
+  touch-action: none;
+  cursor: grab;
 }
 
 .point-sheet-header {
@@ -41,6 +48,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 44px;
+  touch-action: none;
 }
 
 .point-sheet-heading {
@@ -185,4 +193,26 @@
   .point-sheet {
     transition: none;
   }
+}
+
+.point-sheet-photo-count {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.point-sheet-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.point-sheet-empty-state[hidden] {
+  display: none !important;
+}
+
+.point-sheet-upload-button {
+  flex: none;
 }

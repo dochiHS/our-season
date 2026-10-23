@@ -14,6 +14,7 @@
   overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--bg-subtle);
+  touch-action: pan-y;
 }
 
 .season-slideshow-photo {
@@ -29,7 +30,7 @@
   background: transparent;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .6s;
+  transition: opacity .6s, transform .2s;
 }
 
 .season-slideshow-photo.is-active {
@@ -78,6 +79,46 @@
   font-size: 12px;
   line-height: 1.4;
   text-align: left;
+}
+
+.season-slideshow-prev,
+.season-slideshow-next {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.season-slideshow-prev::before,
+.season-slideshow-next::before {
+  position: absolute;
+  z-index: -1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  content: '';
+}
+
+.season-slideshow-prev {
+  left: 6px;
+}
+
+.season-slideshow-next {
+  right: 6px;
 }
 
 .season-slideshow-dots {
