@@ -76,13 +76,13 @@
 
   function renderSpotList() {
     if (!list || !global.App || !global.App.state) return;
-    const appState = global.App.state, needle = state.query.trim().toLocaleLowerCase('ko-KR');
-    let spots = (appState.spots || []).filter(spot => spot.name.toLocaleLowerCase('ko-KR').includes(needle));
+    const appState = global.App.state, normalizeSearchText = value => String(value || '').toLocaleLowerCase('ko-KR').replace(/\s/g, ''), needle = normalizeSearchText(state.query);
+    let spots = (appState.spots || []).filter(spot => !needle || [spot.name, spot.address, ...(spot.areaKeywords || [])].some(value => normalizeSearchText(value).includes(needle)));
     if (state.sort === 'name') spots = spots.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     else if (appState.userCoords) spots = spots.slice().sort((a, b) => (Number.isFinite(a.distanceMeters) ? a.distanceMeters : Infinity) - (Number.isFinite(b.distanceMeters) ? b.distanceMeters : Infinity));
     list.replaceChildren();
     if (state.locationError) { const notice = document.createElement('p'); notice.className = 'spot-list-location-notice'; notice.textContent = state.locationError; list.appendChild(notice); }
-    if (!spots.length) { const empty = document.createElement('p'); empty.className = 'spot-list-empty'; empty.textContent = '찾는 명소가 없어요'; list.appendChild(empty); return; }
+    if (!spots.length) { const empty = document.createElement('p'); empty.className = 'spot-list-empty'; empty.textContent = `‘${state.query.trim()}’에 맞는 명소가 없어요. 동·면 이름이나 명소 이름으로 찾아보세요.`; list.appendChild(empty); return; }
     const photos = appState.approvedPhotos || [], season = global.SpotData && global.SpotData.getCurrentSeason ? global.SpotData.getCurrentSeason() : 'spring';
     spots.forEach(spot => {
       const spotPhotos = photos.filter(photo => photo.spotId === spot.id).slice().sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
@@ -98,6 +98,7 @@
       else if (referencePhoto) { const image = document.createElement('img'); image.src = referencePhoto.thumb; image.alt = `${spot.name} 참고 사진`; image.loading = 'lazy'; thumb.appendChild(image); const badge = document.createElement('span'); badge.className = 'spot-list-reference-badge'; badge.textContent = '참고'; thumb.appendChild(badge); }
       else thumb.setAttribute('aria-label', '아직 승인된 사진이 없습니다');
       const body = document.createElement('span'); body.className = 'spot-list-card-body'; const name = document.createElement('span'); name.className = 'spot-list-card-name'; name.textContent = spot.name; body.appendChild(name);
+      if (spot.address) { const address = document.createElement('span'); address.textContent = spot.address; address.style.fontSize = '12px'; address.style.color = 'var(--text-secondary)'; address.style.display = 'block'; body.appendChild(address); }
       const meta = document.createElement('span'); meta.className = 'spot-list-card-meta';
       if (appState.userCoords && spot.distanceText) { const distance = document.createElement('span'); distance.textContent = spot.distanceText; meta.appendChild(distance); }
       const count = document.createElement('span'); count.textContent = `승인 사진 ${spotPhotos.length}장`; meta.appendChild(count); body.appendChild(meta);

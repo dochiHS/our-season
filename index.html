@@ -30,7 +30,9 @@
   <link rel="stylesheet" href="compass.css">
   <link rel="stylesheet" href="naver-route.css">
   <link rel="stylesheet" href="reference-photos.css">
+  <link rel="stylesheet" href="season-slideshow.css">
   <link rel="stylesheet" href="ui-fixes.css">
+  <link rel="stylesheet" href="season-theme.css">
 </head>
 <body>
   <div id="app" class="app-container">
@@ -53,20 +55,20 @@
 
     <!-- 명소 목록 화면 -->
     <section id="spots-screen" class="screen spots-screen" aria-label="명소 목록" hidden>
-      <header class="screen-topbar"><button id="btn-list-back" class="back-button" type="button" aria-label="첫 화면으로 돌아가기">‹</button><label class="screen-search-box" for="spot-search-input"><span class="search-icon" aria-hidden="true"></span><input id="spot-search-input" type="search" placeholder="명소 이름 검색" autocomplete="off" aria-label="명소 이름 검색"><span class="search-shortcut">검색</span></label></header>
+      <header class="screen-topbar"><button id="btn-list-back" class="back-button" type="button" aria-label="첫 화면으로 돌아가기">‹</button><label class="screen-search-box" for="spot-search-input"><span class="search-icon" aria-hidden="true"></span><input id="spot-search-input" type="search" placeholder="명소·동 이름 검색 (예: 문의, 수동)" autocomplete="off" aria-label="명소 이름 검색"><span class="search-shortcut">검색</span></label></header>
       <div class="spot-sort-row" role="group" aria-label="명소 정렬"><button class="spot-sort-button" data-spot-sort="nearest" type="button" aria-pressed="false">내 주변 가까운 순</button><button class="spot-sort-button" data-spot-sort="name" type="button" aria-pressed="true">이름 순</button></div><div id="spot-list" class="spot-list" aria-live="polite"></div>
     </section>
 
     <!-- 명소 상세 화면: 기존 정보, 지도, 지점, 계절별 사진, 현장 등록 유지 -->
     <section id="detail-screen" class="screen detail-screen" aria-label="명소 상세" hidden>
       <header class="detail-topbar"><button id="btn-detail-back" class="back-button" type="button" aria-label="명소 목록으로 돌아가기">‹</button><h1 id="detail-page-title" class="detail-page-title"></h1><span class="detail-topbar-spacer" aria-hidden="true"></span></header>
-      <div id="app-status-notice" class="app-status-notice" role="status" aria-live="polite" hidden></div><section id="spot-summary-card" class="spot-summary-card" aria-live="polite"></section>
-      <section class="spot-map-section" aria-label="촬영 지점 지도"><div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div></section>
+      <div id="app-status-notice" class="app-status-notice" role="status" aria-live="polite" hidden></div><section id="spot-summary-card" class="spot-summary-card" aria-live="polite"></section><section id="season-slideshow" class="season-slideshow" aria-label="계절별 대표 사진" hidden></section>
       <nav id="point-tabs-section" class="point-tabs-section" aria-label="촬영 지점 선택" hidden><div id="point-tabs" class="spots-tab-scroll point-tab-scroll"></div></nav>
       <main class="matrix-section"><div class="matrix-header"><h2 class="section-title">계절별 사진</h2><span class="matrix-hint">계절 더미를 눌러 사진을 넘겨 보세요</span></div>
         <div class="season-gallery-filters"><div class="season-filter-group" role="group" aria-label="시간대 필터"><button class="season-filter-button is-active" type="button" data-gallery-time="all" aria-pressed="true">전체</button><button class="season-filter-button" type="button" data-gallery-time="sunrise" aria-pressed="false">일출</button><button class="season-filter-button" type="button" data-gallery-time="day" aria-pressed="false">낮</button><button class="season-filter-button" type="button" data-gallery-time="sunset" aria-pressed="false">일몰</button><button class="season-filter-button" type="button" data-gallery-time="night" aria-pressed="false">밤</button></div><label class="season-weather-control" for="gallery-weather-filter"><span>날씨</span><select id="gallery-weather-filter" aria-label="날씨 필터"><option value="all">전체</option><option value="clear">맑음</option><option value="cloudy">흐림</option><option value="rain">비</option><option value="snow">눈</option><option value="fog">안개</option><option value="other">기타</option></select></label></div>
         <div class="matrix-table-wrap"><div id="photo-matrix" class="matrix-grid" aria-live="polite"></div></div>
       </main>
+      <section class="spot-map-section" aria-label="촬영 지점 지도"><div id="spot-map" role="application" aria-label="촬영 지점 및 반경 지도"></div></section>
       <footer class="floating-bottom-bar"><div class="action-btn-wrap"><button id="btn-open-upload" class="btn-upload-action state-unknown" type="button"><span class="btn-icon"><img src="my-photos-icon.png" alt="" aria-hidden="true" class="ui-icon ui-icon-22"></span><span id="btn-upload-label" class="btn-text">내 위치 확인 후 현장 등록하기</span></button><p id="upload-distance-notice" class="upload-distance-notice" role="status" aria-live="polite" hidden></p></div></footer>
     </section>
 
@@ -85,11 +87,11 @@
       <div id="validation-feedback-card" class="validation-feedback-box"><div id="feedback-title" class="feedback-title"></div><div id="feedback-message" class="feedback-message"></div><div id="feedback-hint" class="feedback-hint"></div></div><button type="submit" id="btn-submit-photo" class="btn-submit-upload" disabled>위치 검증 후 등록하기</button>
     </form></div></div>
   </div>
-  <script src="geo-calculator.js"></script><script src="exif-gps-reader.js"></script><script src="photo-heading.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script><script src="spots-data.js"></script><script src="reference-photos.js"></script><script src="image-compressor.js"></script><script src="upload-validator.js"></script><script src="invite.js"></script><script src="free-places-data.js"></script><script src="free-places.js"></script><script src="supabase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script><script src="upload-draft-storage.js"></script>
+  <script src="geo-calculator.js"></script><script src="exif-gps-reader.js"></script><script src="photo-heading.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script><script src="spots-data.js"></script><script src="season-theme.js"></script><script src="reference-photos.js"></script><script src="image-compressor.js"></script><script src="upload-validator.js"></script><script src="invite.js"></script><script src="free-places-data.js"></script><script src="free-places.js"></script><script src="supabase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script><script src="upload-draft-storage.js"></script>
   <script src="auth.js"></script>
   <script src="my-photos.js"></script>
   <script src="camera-capture.js"></script>
-  <script src="app.js"></script><script src="free-upload.js"></script><script src="modal-back.js"></script><script src="free-photo-viewer.js"></script><script src="free-records.js"></script><script src="map-feature.js"></script><script src="compass.js"></script><script src="naver-route.js"></script><script src="screens.js"></script><script src="upload-draft-resume.js"></script>
+  <script src="app.js"></script><script src="free-upload.js"></script><script src="modal-back.js"></script><script src="free-photo-viewer.js"></script><script src="free-records.js"></script><script src="map-feature.js"></script><script src="compass.js"></script><script src="naver-route.js"></script><script src="screens.js"></script><script src="season-slideshow.js"></script><script src="upload-draft-resume.js"></script>
   <script src="pwa.js"></script>
 </body>
 </html>

@@ -1,0 +1,137 @@
+/* 계절별 앱 테마 토큰 */
+html[data-theme="spring"] {
+  --bg-primary: #F6F8EF;
+  --bg-surface: #FCFDF8;
+  --bg-subtle: #EDF1E3;
+  --bg-border: #D9E2C8;
+  --text-primary: #2F3A2C;
+  --text-secondary: #55624C;
+  --text-muted: #626D58;
+  --color-primary: #7FA05A;
+  --color-primary-dark: #4F7332;
+  --color-primary-soft: #E8F0DA;
+  --deco-color: #E9B7BE;
+}
+
+html[data-theme="summer"] {
+  --bg-primary: #F2F7F9;
+  --bg-surface: #FBFDFE;
+  --bg-subtle: #E5EFF4;
+  --bg-border: #CDDFE8;
+  --text-primary: #22343F;
+  --text-secondary: #4B606C;
+  --text-muted: #576C78;
+  --color-primary: #4F8FB0;
+  --color-primary-dark: #2C6585;
+  --color-primary-soft: #DCEBF3;
+  --deco-color: #9CCBE0;
+}
+
+html[data-theme="autumn"] {
+  --bg-primary: #FAF6EF;
+  --bg-surface: #FFFDF9;
+  --bg-subtle: #F3EEE5;
+  --bg-border: #E6DCCB;
+  --text-primary: #3B342D;
+  --text-secondary: #6F655A;
+  --text-muted: #736859;
+  --color-primary: #A77F46;
+  --color-primary-dark: #876438;
+  --color-primary-soft: #F3EBDD;
+  --deco-color: #C98A4B;
+}
+
+html[data-theme="winter"] {
+  --bg-primary: #F3F5F8;
+  --bg-surface: #FCFDFE;
+  --bg-subtle: #E8ECF1;
+  --bg-border: #D3DAE3;
+  --text-primary: #27303D;
+  --text-secondary: #525D6C;
+  --text-muted: #5D6878;
+  --color-primary: #7B8EA8;
+  --color-primary-dark: #475B77;
+  --color-primary-soft: #E1E7EF;
+  --deco-color: #FFFFFF;
+}
+
+html,
+body {
+  background-color: var(--bg-primary);
+  transition: background-color .4s, color .4s;
+}
+
+body {
+  color: var(--text-primary);
+}
+
+/* 계절별 표지 장식: 봄은 기존 꽃잎 모양을 유지합니다. */
+.header-petal {
+  background: var(--deco-color);
+}
+
+html[data-theme="summer"] .header-petal {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: .55;
+}
+
+html[data-theme="autumn"] .header-petal {
+  border-radius: 0 80% 0 80%;
+}
+
+html[data-theme="winter"] .header-petal {
+  width: 7px;
+  height: 7px;
+  border: 1px solid #C9D3DE;
+  border-radius: 50%;
+}
+
+/* 흰 글씨가 강조색 배경에 놓이는 버튼은 어두운 계절 강조색을 씁니다. */
+.btn-upload-action.state-ready,
+.btn-submit-upload:not(:disabled),
+.compass-enable-button,
+.chip-option.selected,
+.free-records-upload-button {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-upload-action.state-ready,
+.btn-submit-upload:not(:disabled),
+.compass-enable-button,
+.free-records-upload-button {
+  color: var(--text-invert, #fff);
+}
+
+/* 밝은 배경 위 강조색 글자는 어두운 계절 강조색으로 바꿉니다. */
+.header-script,
+.free-record-location-button,
+#detail-photo-tag,
+#upload-target-name,
+.season-photo-tag,
+.season-filter-button.is-active,
+.spot-sort-button.is-active,
+.season-tab.is-active,
+.season-pile.is-current-season .season-pile-name,
+.season-pile.is-current-season .season-pile-empty,
+.other-season-tile.is-current .other-season-label,
+.point-name-badge,
+.sun-times-pill,
+.compass-bearing,
+.btn-submit-upload:disabled {
+  color: var(--color-primary-dark);
+}
+
+/* 인라인 색 지정이 있는 사진 태그와 업로드 명소 이름을 덮어씁니다. */
+#detail-photo-tag,
+#upload-target-name {
+  color: var(--color-primary-dark) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-petal {
+    display: none;
+    animation: none;
+  }
+}

@@ -60,6 +60,8 @@
       iosAlphaOffset: null,
       headingSamples: [],
       heading: null,
+      lastBeta: null,
+      lastGamma: null,
       latestPosition: null,
       positionWaiter: null,
       captureWaitTimer: null,
@@ -257,6 +259,8 @@
     const alpha = Number(event.alpha);
     const beta = Number(event.beta);
     const gamma = Number(event.gamma);
+    if (Number.isFinite(event.beta)) session.lastBeta = event.beta;
+    if (Number.isFinite(event.gamma)) session.lastGamma = event.gamma;
 
     if (session.iosOrientation) {
       const webkitHeading = Number(event.webkitCompassHeading);
@@ -338,9 +342,33 @@
     const positionAtCapture = session.latestPosition;
     const width = session.video.videoWidth;
     const height = session.video.videoHeight;
+    let rot = 0;
+    if (Number.isFinite(session.lastBeta) && Number.isFinite(session.lastGamma)) {
+      const b = session.lastBeta * Math.PI / 180;
+      const g = session.lastGamma * Math.PI / 180;
+      const ux = -Math.cos(b) * Math.sin(g);
+      const uy = Math.sin(b);
+      if (Math.hypot(ux, uy) >= 0.5) {
+        const theta = Math.atan2(ux, uy) * 180 / Math.PI;
+        const snapValues = [0, 90, 180, -90];
+        const snap = snapValues.reduce(function (closest, value) {
+          const valueDistance = Math.abs(((theta - value + 540) % 360) - 180);
+          const closestDistance = Math.abs(((theta - closest + 540) % 360) - 180);
+          return valueDistance < closestDistance ? value : closest;
+        }, snapValues[0]);
+        if (!(snap === 90 || snap === -90) || width <= height) {
+          if (snap !== 0) rot = ((-snap) % 360 + 360) % 360;
+        }
+      }
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    if (rot === 90 || rot === 270) {
+      canvas.width = height;
+      canvas.height = width;
+    } else {
+      canvas.width = width;
+      canvas.height = height;
+    }
     const context = canvas.getContext('2d');
     if (!context) {
       session.statusLabel.textContent = '사진을 만들지 못했어요. 다시 시도해 주세요.';
@@ -348,7 +376,13 @@
       return;
     }
     try {
-      context.drawImage(session.video, 0, 0, width, height);
+      if (rot === 0) {
+        context.drawImage(session.video, 0, 0, width, height);
+      } else {
+        context.translate(canvas.width / 2, canvas.height / 2);
+        context.rotate(rot * Math.PI / 180);
+        context.drawImage(session.video, -width / 2, -height / 2, width, height);
+      }
     } catch (_) {
       session.statusLabel.textContent = '사진을 만들지 못했어요. 다시 시도해 주세요.';
       session.shutterButton.disabled = false;

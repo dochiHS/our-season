@@ -12,7 +12,8 @@
   appRoot.appendChild(section);
 
   let active = false, spot = null, point = null, position = null, watchId = null;
-  let heading = null, rawHeading = null, targetPhotoHeading = null, fallback = false, locationError = '', orientationTimer = null;
+  let heading = null, roll = 0, headingSamples = [], iosAlphaOffset = null;
+  let targetPhotoHeading = null, fallback = false, locationError = '', orientationTimer = null;
   let orientationEventName = null, orientationHandler = null;
   let needleRotation = { previous: null, accumulated: 0 };
   let dialRotation = { previous: null, accumulated: 0 };
@@ -41,15 +42,31 @@
   }
   function updateHeading(raw) {
     if (!Number.isFinite(raw)) return;
-    rawHeading = normalize(raw);
-    const corrected = normalize(rawHeading - screenAngle());
-    if (heading === null) heading = corrected;
-    else {
-      const delta = ((corrected - heading + 540) % 360) - 180;
-      heading = normalize(heading + delta * 0.2);
-    }
+    headingSamples.push(normalize(raw));
+    if (headingSamples.length > 8) headingSamples.shift();
+    const sinSum = headingSamples.reduce((sum, value) => sum + Math.sin(value * Math.PI / 180), 0);
+    const cosSum = headingSamples.reduce((sum, value) => sum + Math.cos(value * Math.PI / 180), 0);
+    if (Math.hypot(sinSum, cosSum) > 1e-8) heading = normalize(Math.atan2(sinSum, cosSum) * 180 / Math.PI);
     fallback = false;
     render();
+  }
+  function calculateOrientation(alpha, beta, gamma, flatHeading) {
+    if (![alpha, beta, gamma].every(Number.isFinite)) return;
+    const a = alpha * Math.PI / 180;
+    const b = beta * Math.PI / 180;
+    const g = gamma * Math.PI / 180;
+    const east = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(b) * Math.cos(g);
+    const north = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(b) * Math.cos(g);
+    const magnitude = Math.hypot(east, north);
+    let value;
+    if (magnitude >= 0.5) {
+      value = Math.atan2(east, north) * 180 / Math.PI;
+      roll = Math.atan2(-Math.cos(b) * Math.sin(g), Math.sin(b)) * 180 / Math.PI;
+    } else {
+      value = Number.isFinite(flatHeading) ? flatHeading : 360 - alpha;
+      roll = 0;
+    }
+    updateHeading(value);
   }
   function initialBearing(fromLat, fromLng, toLat, toLng) {
     const rad = value => value * Math.PI / 180;
@@ -101,10 +118,11 @@
       ? `사진 방향 · ${directionLabel(targetPhotoHeading).replace(' · ', ' ')}`
       : position ? directionLabel(bearing) : '';
     const needleBearing = within && targetPhotoHeading !== null ? targetPhotoHeading : bearing;
-    const needleAngle = accumulateAngle(needleBearing - (heading === null ? 0 : heading), needleRotation);
+    const screenOffset = fallback || heading === null ? 0 : roll - screenAngle();
+    const needleAngle = accumulateAngle(needleBearing - heading + screenOffset, needleRotation);
     $('.compass-needle').style.transform = `rotate(${needleAngle}deg)`;
     const hasSensorHeading = heading !== null && !fallback;
-    const headingAngle = hasSensorHeading ? accumulateAngle(heading, dialRotation) : 0;
+    const headingAngle = hasSensorHeading ? accumulateAngle(heading - screenOffset, dialRotation) : 0;
     $('.compass-cardinal-dial').style.transform = `rotate(${-headingAngle}deg)`;
     $('.compass-dial').style.setProperty('--compass-heading-counter', `${headingAngle}deg`);
     const photoGuidance = $('.compass-photo-guidance');
@@ -135,18 +153,37 @@
     if (orientationTimer !== null) global.clearTimeout(orientationTimer);
     orientationTimer = null;
   }
-  function onOrientationChange() { if (rawHeading !== null) updateHeading(rawHeading); }
-  function useFallback() { fallback = true; heading = 0; render(); }
+  function onOrientationChange() { render(); }
+  function useFallback() { fallback = true; heading = 0; roll = 0; render(); }
   function receiveIosOrientation(event) {
-    if (event.webkitCompassHeading === null || event.webkitCompassHeading === undefined) return;
-    const value = Number(event.webkitCompassHeading);
-    if (Number.isFinite(value)) updateHeading(value);
+    const { alpha, beta, gamma, webkitCompassHeading } = event;
+    if (![alpha, beta, gamma].every(Number.isFinite)) return;
+    const flat = Math.abs(beta) < 45 && Math.abs(gamma) < 45;
+    const hasCompassHeading = Number.isFinite(webkitCompassHeading);
+    if (flat && hasCompassHeading && iosAlphaOffset === null) {
+      iosAlphaOffset = (360 - webkitCompassHeading) - alpha;
+    }
+    if (iosAlphaOffset === null && hasCompassHeading) {
+      const a = alpha * Math.PI / 180;
+      const b = beta * Math.PI / 180;
+      const g = gamma * Math.PI / 180;
+      const east = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(b) * Math.cos(g);
+      const north = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(b) * Math.cos(g);
+      roll = Math.hypot(east, north) >= 0.5
+        ? Math.atan2(-Math.cos(b) * Math.sin(g), Math.sin(b)) * 180 / Math.PI
+        : 0;
+      updateHeading(webkitCompassHeading);
+      return;
+    }
+    const correctedAlpha = iosAlphaOffset === null ? alpha : alpha + iosAlphaOffset;
+    const flatHeading = flat && hasCompassHeading && iosAlphaOffset === null ? webkitCompassHeading : null;
+    calculateOrientation(correctedAlpha, beta, gamma, flatHeading);
   }
   function receiveAbsoluteOrientation(event) {
-    if (Number.isFinite(event.alpha)) updateHeading((360 - event.alpha) % 360);
+    calculateOrientation(event.alpha, event.beta, event.gamma, null);
   }
   function receiveStandardOrientation(event) {
-    if (Number.isFinite(event.alpha) && event.absolute === true) updateHeading((360 - event.alpha) % 360);
+    if (event.absolute === true) calculateOrientation(event.alpha, event.beta, event.gamma, null);
   }
   async function enableCompass() {
     if (!active) return;
@@ -226,7 +263,7 @@
     active = false;
     if (watchId !== null && global.navigator.geolocation) global.navigator.geolocation.clearWatch(watchId);
     watchId = null; stopOrientation(); section.hidden = true;
-    position = null; locationError = ''; heading = null; rawHeading = null; targetPhotoHeading = null; fallback = false;
+    position = null; locationError = ''; heading = null; roll = 0; headingSamples = []; iosAlphaOffset = null; targetPhotoHeading = null; fallback = false;
     resetRotation();
     $('.compass-upload-button').hidden = true;
     $('.compass-photo-guidance').hidden = true;
@@ -237,7 +274,7 @@
     if (!showSpot(spotId, pointId)) return;
     const numericPhotoHeading = photoHeading === null || photoHeading === undefined || photoHeading === '' ? null : Number(photoHeading);
     targetPhotoHeading = Number.isInteger(numericPhotoHeading) && numericPhotoHeading >= 0 && numericPhotoHeading <= 359 ? numericPhotoHeading : null;
-    active = true; position = null; locationError = ''; heading = null; rawHeading = null; fallback = false;
+    active = true; position = null; locationError = ''; heading = null; roll = 0; headingSamples = []; iosAlphaOffset = null; fallback = false;
     resetRotation();
     section.hidden = false; $('.compass-enable-button').textContent = '나침반 켜기';
     $('.compass-enable-button').onclick = enableCompass;

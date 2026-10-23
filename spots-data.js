@@ -59,6 +59,8 @@
     {
       id: 'jungbuk-dong',
       name: '정북동토성',
+      address: '청원구 정북동',
+      areaKeywords: ['청원구', '정북동', '오근장동'],
       description: '넓은 평지 위 토성과 하늘이 어우러지는 명소',
       operatingHours: '상시 개방',
       parking: '주차 가능',
@@ -78,6 +80,8 @@
     {
       id: 'sangdang-sanseong',
       name: '상당산성',
+      address: '상당구 산성동',
+      areaKeywords: ['상당구', '산성동'],
       description: '조선시대 석축산성으로 사계절 피크닉과 산책 명소',
       operatingHours: '상시 개방',
       parking: '주차 가능',
@@ -115,6 +119,8 @@
     {
       id: 'suamgol',
       name: '수암골 전망대',
+      address: '상당구 수동',
+      areaKeywords: ['상당구', '수동', '중앙동'],
       description: '청주 시내가 한눈에 내려다보이는 야경 및 일몰 명소',
       operatingHours: '상시 개방',
       parking: '주차 가능',
@@ -134,6 +140,8 @@
     {
       id: 'musimcheon',
       name: '무심천 벚꽃길',
+      address: '서원구 모충동 일대',
+      areaKeywords: ['서원구', '모충동', '사직동', '흥덕구', '운천동'],
       description: '봄이면 하천을 따라 벚꽃 터널이 이어지는 산책길',
       operatingHours: '상시 개방',
       parking: '현장 확인 예정',
@@ -153,6 +161,8 @@
     {
       id: 'cheongnamdae',
       name: '청남대',
+      address: '상당구 문의면 신대리',
+      areaKeywords: ['상당구', '문의면', '신대리'],
       description: '대청호를 끼고 있는 옛 대통령 별장과 정원',
       operatingHours: '09:00~18:00 (12~1월 17:00까지) · 월요일 휴관',
       parking: '주차 가능 (유료)',
@@ -172,6 +182,8 @@
     {
       id: 'munui-daecheongho',
       name: '문의 대청호 일대',
+      address: '상당구 문의면 문산리',
+      areaKeywords: ['상당구', '문의면', '문산리', '대청호'],
       description: '문의문화유산단지에서 내려다보는 대청호 풍경',
       operatingHours: '현장 확인 예정',
       parking: '현장 확인 예정',
@@ -191,6 +203,8 @@
     {
       id: 'midongsan',
       name: '미동산수목원',
+      address: '상당구 미원면 미동리',
+      areaKeywords: ['상당구', '미원면', '미동리'],
       description: '비 오는 날 숲길 분위기가 좋은 수목원',
       operatingHours: '09:00~18:00 (11~2월 17:00까지) · 월요일 휴원',
       parking: '주차 가능',
@@ -210,6 +224,8 @@
     {
       id: 'munam-park',
       name: '문암생태공원',
+      address: '흥덕구 문암동',
+      areaKeywords: ['흥덕구', '문암동'],
       description: '습지와 숲길, 넓은 잔디밭이 있는 도심 생태공원',
       operatingHours: '상시 개방',
       parking: '현장 확인 예정',
@@ -229,6 +245,8 @@
     {
       id: 'bukmunro-ginkgo',
       name: '북문로 하트 은행나무길',
+      address: '상당구 북문로3가',
+      areaKeywords: ['상당구', '북문로', '중앙동'],
       description: '하트 모양으로 다듬은 은행나무가 늘어선 원도심 가로수길',
       operatingHours: '상시 개방',
       parking: '현장 확인 예정',
